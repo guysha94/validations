@@ -1,0 +1,29 @@
+version: '3'
+
+vars:
+  BACKEND_DIR: backend
+  FRONTEND_DIR: frontend
+
+tasks:
+  
+  
+  backend:
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - dotnet run --urls http://localhost:3001
+
+  frontend:
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - pnpm run dev
+
+  run:
+    cmds:
+      - overmind start -f Procfile
+
+  publish:
+    cmds:
+      - task: lint
+      - git add .
+      - git commit -m "{{.CLI_ARGS}}"
+      - git push origin $(git branch --show-current)

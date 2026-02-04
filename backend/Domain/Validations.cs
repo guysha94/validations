@@ -1,0 +1,18 @@
+namespace Backend.Domain;
+
+public sealed record ValidateRequestDto(
+    string EventType,
+    string Url
+);
+
+public sealed record ErrorDetailDto(
+    string TabName,
+    int RowNumber,
+    string ErrorMessage
+);
+
+public sealed record ValidateResponseDto(
+    string Status, // "valid" | "invalid"
+    List<ErrorDetailDto> Errors
+);
+

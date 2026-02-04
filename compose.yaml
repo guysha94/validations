@@ -1,0 +1,10 @@
+﻿services:
+  validations:
+    image: validations
+    build:
+      context: .
+      dockerfile: validations/Dockerfile
+    container_name: validations
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
