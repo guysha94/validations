@@ -1,4 +1,5 @@
 using Rule = Backend.Rules.Rule;
+using Backend.Domain;
 
 namespace Backend.Infra;
 
@@ -20,6 +21,10 @@ namespace Backend.Infra;
 [JsonSerializable(typeof(RuleCreateDto))]
 [JsonSerializable(typeof(RuleUpdateDto))]
 [JsonSerializable(typeof(RuleUpdateManyDto))]
+[JsonSerializable(typeof(ValidateRequestDto))]
+[JsonSerializable(typeof(ValidateResponseDto))]
+[JsonSerializable(typeof(ErrorDetailDto))]
+[JsonSerializable(typeof(List<ErrorDetailDto>))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 }

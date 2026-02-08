@@ -8,7 +8,7 @@ namespace Backend.Application.Services;
 public sealed class ValidationEngine(
     SheetsFetcher sheetsFetcher,
     IRuleRepository ruleRepository,
-    MySqlConnectionFactory mysqlFactory,
+    IDbConnectionFactory mysqlFactory,
     ILogger<ValidationEngine> logger
 )
 {
