@@ -1,3 +1,4 @@
+using Backend.Application.Services;
 using Backend.Infra.Configs;
 using Scalar.AspNetCore;
 
@@ -27,6 +28,8 @@ builder.Services.AddSingleton<IDbConnectionFactory, MySqlConnectionFactory>();
 builder.Services.AddScoped<IMySqlSession, MySqlSession>();
 builder.Services.AddScoped<IRuleRepository, RuleRepository>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<SheetsFetcher>();
+builder.Services.AddScoped<ValidationEngine>();
 
 
 builder.Services.AddOpenApi();

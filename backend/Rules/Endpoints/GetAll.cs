@@ -7,7 +7,7 @@ public class GetAll(IRuleRepository repo)
     {
         Get("rules");
         AllowAnonymous();
-        Tags("Events");
+        Tags("Rules");
         ResponseCache(60);
     }
 
