@@ -7,12 +7,16 @@ public sealed class RuleRepository(
 {
     public async ValueTask<ICollection<Rule>> GetByEventTypeAsync(string eventType, CancellationToken ct = default)
     {
-        const string sql = "SELECT * FROM rules WHERE event_id IN (SELECT id FROM events WHERE type = @eventType)";
-        var parameters = new { eventType };
+        const string sql = """
+                           SELECT id AS Id, event_id AS EventId, name AS Name, error_message AS ErrorMessage, query AS Query, enabled AS Enabled
+                           FROM rules 
+                           WHERE event_id IN (SELECT id FROM events WHERE type = @eventType);
+                           """;
+
         try
         {
             await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
-            var results = await connection.QueryAsync<Rule>(sql, parameters);
+            var results = await connection.QueryAsync<Rule>(sql, new { eventType });
             return results.ToList();
         }
         catch (Exception ex)

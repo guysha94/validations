@@ -36,7 +36,7 @@ export const columns: ColumnDef<ValidationErrorInfo>[] = [
         enableHiding: true,
     },
     {
-        accessorKey: "tab_name",
+        accessorKey: "tabName",
         header: ({column}) => {
             return (
                 <Button
@@ -53,7 +53,7 @@ export const columns: ColumnDef<ValidationErrorInfo>[] = [
         enableHiding: true,
     },
     {
-        accessorKey: "row_number",
+        accessorKey: "rowNumber",
         header: ({column}) => {
             return (
                 <Button
@@ -71,7 +71,7 @@ export const columns: ColumnDef<ValidationErrorInfo>[] = [
     },
 
     {
-        accessorKey: "error_message",
+        accessorKey: "errorMessage",
         header: ({column}) => {
             return (
                 <Button

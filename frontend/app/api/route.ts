@@ -1,8 +1,10 @@
-import {env} from "~/env/server";
 import {NextResponse} from "next/server";
+import {getDbTables} from "~/lib/db/queries";
+
 
 export async function GET() {
 
+    const dbTables = await getDbTables();
 
-    return NextResponse.json({ status: "ok", baseUrl: env.GOOGLE_CLIENT_ID, secret: env.GOOGLE_CLIENT_SECRET });
+    return NextResponse.json(dbTables);
 }

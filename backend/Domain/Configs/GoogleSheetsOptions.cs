@@ -1,4 +1,4 @@
-namespace Backend.Infra.Configs;
+namespace Backend.Domain.Configs;
 
 public sealed record GoogleSheetsOptions
 {

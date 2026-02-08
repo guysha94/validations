@@ -22,7 +22,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function TestForm() {
-    const {currentEvent} = useValidationsStore(useShallow((state) => state));
+    const {currentEvent, setTestResults} = useValidationsStore(useShallow((state) => state));
     const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -34,14 +34,14 @@ export default function TestForm() {
     });
 
     const onSubmit = async ({url}: FormData) => {
-        if(!currentEvent) return;
+        if (!currentEvent) return;
         setIsSubmitting(true);
 
         try {
 
-            const response = await api.validations.validate({eventType: currentEvent.type, url});
+            const response = await api.validate({eventType: currentEvent.type, url});
             console.log("Validation response:", response);
-            setTestResultsAction(response.errors?.map((error: any, index: number) => ({index: index + 1, ...error})) || []);
+            setTestResults(currentEvent.type, response.errors?.map((error: any, index: number) => ({index: index + 1, ...error})) || []);
 
             if (response.errors && response.errors.length > 0) {
                 toast.error(`Validation failed with ${response.errors.length} error(s)`, {

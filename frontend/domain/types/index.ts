@@ -69,7 +69,12 @@ export const SqlQuerySchema = z
 
 export type ValidationErrorInfo = {
     index: number
-    tab_name: string,
-    row_number: number,
-    error_message: string,
+    tabName: string,
+    rowNumber: number,
+    errorMessage: string,
 }
+
+export type DbTable = {
+    name: string;
+    columns: string[];
+};

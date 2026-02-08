@@ -9,19 +9,20 @@ import {Checkbox} from "@/components/ui/checkbox"
 import {Label} from "@/components/ui/label"
 import {Card, CardContent, CardHeader, CardTitle,} from "~/components/ui/card";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "~/components/ui/form";
-import {rulesCollection} from "~/db/collections";
+import {rulesCollection} from "~/lib/db/collections";
 import {Spinner} from "~/components/ui/spinner";
-import {eq, Transaction, useLiveQuery} from "@tanstack/react-db";
+import {Transaction} from "@tanstack/react-db";
 import SQLEditor from "~/components/SQLEditor";
 import * as z from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
-import dynamic from "next/dynamic";
-import {rulesSchema} from "~/db/schemas";
+import {RulesSchema, rulesSchema} from "~/lib/db/schemas";
 import {toast} from "sonner"
+
 
 type RulesFormProps = {
     eventType: string;
     eventId: string;
+    rules: Array<RulesSchema>;
 };
 
 const formsRulesSchema = rulesSchema.omit({createdAt: true, updatedAt: true});
@@ -37,21 +38,19 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export function RulesFormComponent({eventType, eventId}: RulesFormProps) {
-    const {data: rules = [], isLoading} = useLiveQuery(
-        (q) => q.from({rules: rulesCollection})
-            .where(({rules}) => eq(rules.eventId, eventId)),
-    )
+export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
+
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAtBottom, setIsAtBottom] = useState(false);
     const [isAtTop, setIsAtTop] = useState(true);
 
-
     const form = useForm({
         resolver: zodResolver(formSchema),
         mode: "onChange",
-
+        defaultValues: {
+            rules: rules,
+        }
     });
 
 
@@ -64,7 +63,6 @@ export function RulesFormComponent({eventType, eventId}: RulesFormProps) {
 
     const onSubmit = async (data: FormData) => {
         setIsSubmitting(true);
-
 
         try {
 
@@ -172,54 +170,31 @@ export function RulesFormComponent({eventType, eventId}: RulesFormProps) {
 
     useEffect(() => {
 
+        if (fields.length > 0) return;
+        const fromSession = sessionStorage.getItem(`rules-form:${eventType}`);
 
-        if (isLoading) return;
-        if (rules.length > 0) {
-            rules.forEach((rule) => {
-                append(rule, {shouldFocus: false}
-                )
-            });
-
-        } else {
-
-            const fromSession = sessionStorage.getItem(`rules-form:${eventType}`);
-            if (!!fromSession) {
-                const parsed = JSON.parse(fromSession) as { rules: RuleFormData[] };
-                if (parsed.rules && parsed.rules.length > 0) {
-                    parsed.rules.forEach((rule) => {
-                        append({
-                                id: rule.id,
-                                name: rule.name,
-                                errorMessage: rule.errorMessage,
-                                query: rule.query,
-                                eventId: rule.eventId,
-                                enabled: rule.enabled,
-                            },
-                            {shouldFocus: false}
-                        )
-                    });
-                    return;
-                }
+        if (!!fromSession) {
+            const parsed = JSON.parse(fromSession) as { rules: RuleFormData[] };
+            const notExistingRules = parsed.rules.filter(r => !rules?.some(existing => existing.id === r.id));
+            if (notExistingRules.length > 0) {
+                notExistingRules.forEach((rule) => {
+                    append({
+                            id: rule.id,
+                            name: rule.name,
+                            errorMessage: rule.errorMessage,
+                            query: rule.query,
+                            eventId: rule.eventId,
+                            enabled: rule.enabled,
+                        },
+                        {shouldFocus: false}
+                    )
+                });
+                return;
             }
-
-            append({
-                    id: `new-${crypto.randomUUID()}`,
-                    name: "",
-                    errorMessage: "",
-                    query: "",
-                    eventId: eventId,
-                    enabled: true,
-                },
-                {shouldFocus: true});
         }
-        requestAnimationFrame(() => {
-            // if some editor focused itself, undo it
-            (document.activeElement as HTMLElement | null)?.blur?.();
-            window.scrollTo({top: 0, left: 0, behavior: "auto"});
-        });
 
 
-    }, [isLoading, rules, form, append, eventId, eventType]);
+    }, [rules, form, append, eventId, eventType]);
 
     // store changes in session storage
     useEffect(() => {
@@ -228,11 +203,7 @@ export function RulesFormComponent({eventType, eventId}: RulesFormProps) {
         };
         sessionStorage.setItem(`rules-form:${eventType}`, JSON.stringify(dataToStore));
     }, [watchAll, eventType]);
-
-
-    if (isLoading) {
-        return <div>Loading...</div>;
-    }
+    
 
     return (
         <Form {...form}>
@@ -298,7 +269,7 @@ export function RulesFormComponent({eventType, eventId}: RulesFormProps) {
                                                             <Checkbox
                                                                 id={`rules.${index}.enabled`}
                                                                 defaultChecked
-                                                                checked={field.value as boolean}
+                                                                checked={(field?.value || true) as boolean}
                                                                 onChange={() => field.onChange(!field.value)}
                                                                 onBlur={() => field.onBlur()}
                                                                 onClick={() => field.onChange(!field.value)}
@@ -439,9 +410,3 @@ export function RulesFormComponent({eventType, eventId}: RulesFormProps) {
     );
 }
 
-export const RulesForm = dynamic(() => Promise.resolve(RulesFormComponent), {
-    ssr: false,
-    loading: () => <div>Loading...</div>,
-});
-
-export default RulesForm;

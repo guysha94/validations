@@ -1,14 +1,17 @@
 using System.Data;
 using System.Diagnostics;
-using Backend.Domain;
+using Backend.Validation;
 using DuckDB.NET.Data;
+using Microsoft.IdentityModel.Tokens;
+using Event = Backend.Events.Event;
 
 namespace Backend.Application.Services;
 
 public sealed class ValidationEngine(
     SheetsFetcher sheetsFetcher,
     IRuleRepository ruleRepository,
-    MySqlConnectionFactory mysqlFactory,
+    IEventRepository eventRepository,
+    IDbConnectionFactory mysqlFactory,
     ILogger<ValidationEngine> logger
 )
 {
@@ -16,8 +19,8 @@ public sealed class ValidationEngine(
     {
         var sw = Stopwatch.GetTimestamp();
 
-        var rules = await ruleRepository.GetByEventTypeAsync(eventType, ct);
 
+        var eventData = await eventRepository.GetByEventTypeAsync(eventType, ct);
         var sheetTabsRaw = await sheetsFetcher.GetSheetValuesByUrl(url, ct);
         var sheetTabs = sheetTabsRaw.ToDictionary(
             kvp => kvp.Key,
@@ -25,10 +28,23 @@ public sealed class ValidationEngine(
             StringComparer.Ordinal
         );
 
+        var schemaErrors = ValidateSchema(eventData, sheetTabs);
+        if (schemaErrors.Count > 0)
+        {
+            logger.LogWarning("Schema validation failed: eventType={EventType} errors={ErrorCount}", eventType,
+                schemaErrors.Count);
+            return new ValidateResponseDto("invalid", schemaErrors);
+        }
+
+        var rules = await ruleRepository.GetByEventTypeAsync(eventType, ct);
+
+
         // Load relevant reference tables from MySQL into DataTables (Python: DbService.get_all()).
         var dbTables = new Dictionary<string, DataTable>(StringComparer.Ordinal);
 
-        await using var mysqlConn = await mysqlFactory.CreateOpenConnectionAsync(ct);
+        await using var mysqlConn =
+            await mysqlFactory.CreateOpenConnectionAsync(MySqlConnectionFactory.BACKEND_CONNECTION_NAME,
+                ct);
 
 
         var tableNames = await GetMySqlTableNamesAsync(mysqlConn, ct);
@@ -93,6 +109,32 @@ public sealed class ValidationEngine(
         return errors.Count > 0
             ? new ValidateResponseDto("invalid", errors)
             : new ValidateResponseDto("valid", []);
+    }
+
+    private ICollection<ErrorDetailDto> ValidateSchema(Event eventData, IDictionary<string, DataTable> sheetTabs)
+    {
+        var schema = eventData.Schema;
+        if (schema.IsNullOrEmpty())
+            return [];
+        var errors = new List<ErrorDetailDto>();
+        foreach (var (name, columns) in schema)
+        {
+            if (!sheetTabs.TryGetValue(name, out var table))
+            {
+                errors.Add(new ErrorDetailDto(name, 0, $"Expected tab '{name}' not found"));
+                continue;
+            }
+
+            foreach (var col in columns)
+            {
+                if (!table.Columns.Contains(col.Name))
+                {
+                    errors.Add(new ErrorDetailDto(name, 0, $"Expected column '{col.Name}' not found in tab '{name}'"));
+                }
+            }
+        }
+
+        return errors;
     }
 
     private static async Task<IReadOnlyList<string>> GetMySqlTableNamesAsync(MySqlConnection conn, CancellationToken ct)

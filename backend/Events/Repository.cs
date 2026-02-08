@@ -5,9 +5,9 @@ public sealed class EventRepository(
     IDbConnectionFactory connectionFactory)
     : Repository<Event, Guid, EventCreateDto, EventUpdateDto>(logger, connectionFactory), IEventRepository
 {
-    public async ValueTask<Event> GetByEventTypeAsync(Guid eventType, CancellationToken ct = default)
+    public async ValueTask<Event> GetByEventTypeAsync(string eventType, CancellationToken ct = default)
     {
-        const string sql = "SELECT * FROM events WHERE type = @eventType;";
+        const string sql = "SELECT id as Id, type as Type, label as Label, icon as Icon, event_schema as `Schema`, updated_at as UpdatedAt FROM events WHERE type = @eventType;";
 
 
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);

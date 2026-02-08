@@ -13,7 +13,10 @@ public class GetAll(IEventRepository repo)
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var events = await repo.GetAllAsync(ct);
-        await Send.OkAsync(events, ct);
+        var results = await repo.GetAllAsync(ct);
+        await results.Match(
+            events => Send.OkAsync(events, ct),
+            errors => Send.ResultAsync(Results.InternalServerError(errors))
+        );
     }
 }

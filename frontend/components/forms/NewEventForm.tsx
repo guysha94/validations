@@ -7,7 +7,7 @@ import {Input} from "~/components/ui/input";
 import {Button} from "~/components/ui/button";
 import SelectIcon from "~/components/SelectIcon";
 import {DialogClose, DialogFooter} from "~/components/ui/dialog";
-import {eventsCollection} from "~/db/collections";
+import {eventsCollection} from "~/lib/db/collections";
 import {useValidationsStore} from "~/store";
 import {useShallow} from "zustand/react/shallow";
 import { useRouter } from 'next/navigation'

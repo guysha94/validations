@@ -1,5 +1,3 @@
-
-
 namespace Backend.Events.Endpoints;
 
 public class CreateOne(IEventRepository repo) : Endpoint<EventCreateDto, Event?>
@@ -14,13 +12,13 @@ public class CreateOne(IEventRepository repo) : Endpoint<EventCreateDto, Event?>
 
     public override async Task HandleAsync(EventCreateDto dto, CancellationToken ct)
     {
-        var e = await repo.CreateOneAsync(dto.ToEvent(), ct);
-        if (e is null)
-        {
-            await Send.ErrorsAsync(StatusCodes.Status500InternalServerError, ct);
-            return;
-        }
+        var result = await repo.CreateOneAsync(dto.ToEvent(), ct);
 
-        await Send.CreatedAtAsync<GetOne>(new { id = e.Id }, e, cancellation: ct);
+        await result.Match(
+            e => e.IsNone
+                ? Send.ResultAsync(Results.Problem("Failed to create event"))
+                : Send.CreatedAtAsync<GetOne>(new { id = (e.Case as Event).Id }, cancellation: ct),
+            errors => Send.ResultAsync(Results.InternalServerError(errors))
+        );
     }
 }

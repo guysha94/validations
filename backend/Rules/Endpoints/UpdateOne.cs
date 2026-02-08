@@ -19,13 +19,12 @@ public class UpdateOne(IRuleRepository repo) : Endpoint<RuleUpdateDto, Rule>
             return;
         }
 
-        var rule = await repo.UpdateOneAsync(id, dto, ct);
-        if (rule is null)
-        {
-            await Send.ErrorsAsync(StatusCodes.Status404NotFound, ct);
-            return;
-        }
-
-        await Send.OkAsync(rule, ct);
+        var result = await repo.UpdateOneAsync(id, dto, ct);
+        await result.Match(
+            r => r.IsNone
+                ? Send.NotFoundAsync(ct)
+                : Send.OkAsync(r.Case as Rule, ct),
+            errors => Send.ResultAsync(Results.InternalServerError(errors))
+        );
     }
 }

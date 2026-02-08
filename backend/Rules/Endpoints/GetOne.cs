@@ -20,13 +20,12 @@ public class GetOne(IRuleRepository repo)
             return;
         }
 
-        var rule = await repo.GetByIdAsync(id, ct);
-        if (rule is null)
-        {
-            await Send.ErrorsAsync(StatusCodes.Status404NotFound, ct);
-            return;
-        }
-
-        await Send.OkAsync(rule, ct);
+        var result = await repo.GetByIdAsync(id, ct);
+        await result.Match(
+            r => r.IsNone
+                ? Send.NotFoundAsync(ct)
+                : Send.OkAsync(r.Case as Rule, ct),
+            errors => Send.ResultAsync(Results.InternalServerError(errors))
+        );
     }
 }

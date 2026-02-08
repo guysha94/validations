@@ -2,23 +2,21 @@
 
 import {env} from "~/env/client";
 import {
-    RulesInsertSchema,
-    RulesSchema,
-    RulesUpdateSchema,
     EventsInsertSchema,
     EventsSchema,
-    EventsUpdateSchema
-} from "~/db/schemas";
+    EventsUpdateSchema,
+    RulesInsertSchema,
+    RulesSchema,
+    RulesUpdateSchema
+} from "~/lib/db/schemas";
 
 
 export const api = {
     events: {
         getAll: async () => {
             const url = `${env.NEXT_PUBLIC_API_BASE_URL}/events`;
-            console.log("Fetching events from:", url);
             const response = await fetch(url);
             const data = await response.json();
-            console.log("Fetched events:", data);
             return data as EventsSchema[];
         },
         create: async (event: EventsInsertSchema) => {
@@ -54,23 +52,13 @@ export const api = {
             const data = await response.json();
             return data as { success: boolean; id: string };
         },
-        validate: async (formData: { url: string, eventType: string }) => {
-            const url = `${env.NEXT_PUBLIC_API_BASE_URL}/validate`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-            return await response.json();
-        }
     },
     rules: {
         getAll: async () => {
             const url = `${env.NEXT_PUBLIC_API_BASE_URL}/rules`;
             const response = await fetch(url);
             const data = await response.json();
+            console.log("Fetched rules:", data);
             return data as RulesSchema[];
         },
         create: async (rules: RulesInsertSchema | Array<RulesInsertSchema>) => {
@@ -119,4 +107,15 @@ export const api = {
             return data as { success: boolean; id: string };
         }
     },
+    validate: async (formData: { url: string, eventType: string }) => {
+        const url = `${env.NEXT_PUBLIC_VALIDATION_BASE_URL}/api/validate`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData),
+        });
+        return await response.json();
+    }
 };

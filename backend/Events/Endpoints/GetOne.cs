@@ -20,13 +20,12 @@ public class GetOne(IEventRepository repo)
             return;
         }
 
-        var e = await repo.GetByIdAsync(id, ct);
-        if (e is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
-        await Send.OkAsync(e, ct);
+        var result = await repo.GetByIdAsync(id, ct);
+        await result.Match(
+            e => e.IsNone
+                ? Send.NotFoundAsync(ct)
+                : Send.OkAsync(e.Case as Event, ct),
+            errors => Send.ResultAsync(Results.InternalServerError(errors))
+        );
     }
 }

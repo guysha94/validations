@@ -18,7 +18,10 @@ public class DeleteOne(IEventRepository repo) : EndpointWithoutRequest<object>
             return;
         }
 
-        var deleted = await repo.DeleteOneAsync(id, ct);
-        await Send.OkAsync(new { deleted }, ct);
+        var result = await repo.DeleteOneAsync(id, ct);
+        await result.Match(
+            deleted => Send.OkAsync(new { deleted }, ct),
+            errors => Send.ResultAsync(Results.InternalServerError(errors))
+        );
     }
 }

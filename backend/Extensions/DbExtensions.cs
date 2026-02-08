@@ -8,7 +8,8 @@ public static class DbExtensions
     public static IServiceCollection UpdateDbSchema(this IServiceCollection services, IConfiguration configuration)
     {
         SqlMapper.AddTypeHandler(new JsonTypeHandler<IDictionary<string, ICollection<EventColumn>>>());
-        var connectionString = configuration.GetConnectionString(MySqlConnectionFactory.CONNECTION_NAME) ??
+        SqlMapper.AddTypeHandler(new JsonTypeHandler<LanguageExt.HashSet<string>>());
+        var connectionString = configuration.GetConnectionString(MySqlConnectionFactory.VALIDATIONS_CONNECTION_NAME) ??
                                throw new InvalidOperationException("Connection string 'Default' not found.");
 
         EnsureDatabase.For.MySqlDatabase(connectionString);

@@ -1,3 +1,4 @@
+using Event = Backend.Events.Event;
 using Rule = Backend.Rules.Rule;
 
 namespace Backend.Infra;
@@ -13,7 +14,6 @@ namespace Backend.Infra;
 [JsonSerializable(typeof(IEnumerable<string>))]
 [JsonSerializable(typeof(List<string>))]
 [JsonSerializable(typeof(string[]))]
-[JsonSerializable(typeof(Event))]
 [JsonSerializable(typeof(IEnumerable<Event>))]
 [JsonSerializable(typeof(EventCreateDto))]
 [JsonSerializable(typeof(EventUpdateDto))]

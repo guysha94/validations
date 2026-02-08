@@ -18,7 +18,7 @@ export const eventsSchema = z.object({
     type: z.string(),
     label: z.string().nullable().default(null),
     icon: z.string().nullable().default(null),
-    schema: z.record(z.string(), columnsSchema.array()).default({}),
+    eventSchema: z.record(z.string(), columnsSchema.array()).default({}),
     updatedAt: DateTimeSchema,
 });
 

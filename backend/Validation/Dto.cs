@@ -1,4 +1,4 @@
-namespace Backend.Domain;
+namespace Backend.Validation;
 
 public sealed record ValidateRequestDto(
     string EventType,
@@ -13,6 +13,5 @@ public sealed record ErrorDetailDto(
 
 public sealed record ValidateResponseDto(
     string Status, // "valid" | "invalid"
-    List<ErrorDetailDto> Errors
+    ICollection<ErrorDetailDto> Errors
 );
-

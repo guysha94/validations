@@ -3,14 +3,9 @@
 import {useFieldArray, useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import * as z from "zod";
-import dynamic from "next/dynamic";
-import Loader from "~/components/Loader";
-import {eq, useLiveQuery} from "@tanstack/react-db";
-import {eventsCollection} from "~/db/collections";
-import {useValidationsStore} from "~/store";
-import {useShallow} from "zustand/react/shallow";
+import {eventsCollection} from "~/lib/db/collections";
 import {useEffect, useState} from "react";
-import {Plus, Trash2, ChevronDown, ChevronUp} from "lucide-react";
+import {ChevronDown, ChevronUp, Plus, Trash2} from "lucide-react";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {Checkbox} from "~/components/ui/checkbox";
@@ -19,8 +14,10 @@ import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "~/
 import {Label} from "~/components/ui/label";
 import {Spinner} from "~/components/ui/spinner";
 import {toast} from "sonner";
+import {EventsSchema} from "~/lib/db/schemas";
+import _ from "lodash";
 
-// Form schema - columns are always required arrays (no optional/default)
+
 const formColumnsSchema = z.object({
     name: z.string().min(1, "Column name is required"),
     isReward: z.boolean(),
@@ -38,21 +35,30 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export function SchemaFormComponent() {
-    const {currentEvent} = useValidationsStore(useShallow((state) => state));
+type Props = {
+    event: EventsSchema
+};
+
+export default function SchemaForm({event}: Props) {
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [collapsedTabs, setCollapsedTabs] = useState<Set<string>>(new Set());
 
-    const {data: events = [], isLoading} = useLiveQuery(
-        (q) => q.from({events: eventsCollection})
-            .where(({events}) => eq(events.id, currentEvent?.id)),
-    );
 
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         mode: "onChange",
         defaultValues: {
-            tabs: [],
+            tabs: !!event?.eventSchema && Object.keys(event.eventSchema)?.length > 0
+                ? Object.entries(event.eventSchema)
+                    .map(([tabName, columns]) => ({
+                    name: tabName,
+                    columns: columns.map((col) => ({
+                        name: col.name,
+                        isReward: col.isReward ?? false,
+                    })),
+                })).sort((a, b) => a.name.localeCompare(b.name))
+                : []
         },
     });
 
@@ -62,30 +68,20 @@ export function SchemaFormComponent() {
     });
 
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
-        
-        if (!currentEvent?.id) {
-            toast.error("No event selected", {
-                closeButton: true,
-                duration: 4000,
-                style: {backgroundColor: "#f43f5e", color: "white"},
-            });
-            return;
-        }
-
+        console.log("Submitting form with data:", data);
         setIsSubmitting(true);
 
         try {
 
             const schemaObj = Object.fromEntries(data.tabs.map((tab) => [tab.name, tab.columns]));
 
-            console.log(schemaObj);
             const updateTx = eventsCollection.update(
-                currentEvent.id,
+                event.id,
                 {
                     optimistic: true,
                 },
                 (draft) => {
-                    draft.schema = schemaObj;
+                    draft.eventSchema = schemaObj;
                 }
             );
             await updateTx.isPersisted.promise;
@@ -96,48 +92,23 @@ export function SchemaFormComponent() {
                 richColors: true,
                 style: {backgroundColor: "#4ade80", color: "white"},
             });
+            setIsSubmitting(false);
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "An error occurred", {
                 closeButton: true,
                 duration: 4000,
                 style: {backgroundColor: "#f43f5e", color: "white"},
             });
+            setIsSubmitting(false);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    useEffect(() => {
-        if (isLoading || events?.length === 0) return;
-        const event = events[0];
-
-        // Reset form and populate with existing schema
-        const schemaTabs = event.schema && Object.keys(event.schema).length > 0
-            ? Object.entries(event.schema).map(([tabName, columns]) => ({
-                name: tabName,
-                columns: columns.map((col) => ({
-                    name: col.name,
-                    is_reward: col.isReward || false,
-                })),
-            }))
-            : [];
-
-        form.reset({
-            tabs: schemaTabs,
-        });
-
-
-        if (schemaTabs.length === 0) {
-            appendTab({
-                name: "",
-                columns: [],
-            });
-        }
-    }, [isLoading, events, form, appendTab]);
-
+  
     // Collapse all tabs by default (add new tabs to collapsed set)
     useEffect(() => {
-        if (tabFields.length > 0 && !isLoading) {
+        if (tabFields.length > 0) {
             const allTabIds = new Set(tabFields.map(field => field.id));
 
             setCollapsedTabs(prevCollapsed => {
@@ -164,11 +135,11 @@ export function SchemaFormComponent() {
                 return hasChanges ? currentCollapsed : prevCollapsed;
             });
         }
-    }, [tabFields.map(f => f.id).join(','), isLoading]); // Use tab IDs as dependency instead of the whole array
+    }, [tabFields.map(f => f.id).join(',')]); // Use tab IDs as dependency instead of the whole array
 
     // if (isLoading) return <Loader fullscreen/>;
 
-    if (!currentEvent) {
+    if (!event) {
         return (
             <div className="flex items-center justify-center p-8">
                 <p className="text-muted-foreground">Please select an event to configure its schema.</p>
@@ -216,7 +187,7 @@ export function SchemaFormComponent() {
                                 tabFields.map((tabField, tabIndex) => {
                                     const tabName = form.watch(`tabs.${tabIndex}.name`);
                                     const isCollapsed = collapsedTabs.has(tabField.id); // Collapsed by default
-                                    const displayTitle = tabName?.trim() || `Tab ${tabIndex + 1}`;
+                                    const displayTitle = _.startCase(tabName?.trim() || `Tab ${tabIndex + 1}`);
 
                                     return (
                                         <Card key={tabField.id} className="border-2">
@@ -373,7 +344,6 @@ function TabColumnsField({form, tabIndex}: { form: ReturnType<typeof useForm<For
         );
     }
 
-    // @ts-ignore
     return (
         <div className="space-y-3">
             {columnFields.map((columnField, columnIndex) => (
@@ -402,7 +372,7 @@ function TabColumnsField({form, tabIndex}: { form: ReturnType<typeof useForm<For
                                 />
                                 <FormField
                                     control={form.control}
-                                    name={`tabs.${tabIndex}.columns.${columnIndex}.is_reward` as string}
+                                    name={`tabs.${tabIndex}.columns.${columnIndex}.isReward`}
                                     render={({field}) => (
                                         <FormItem className="flex flex-row items-center space-x-2 space-y-0">
                                             <FormControl>
@@ -435,10 +405,3 @@ function TabColumnsField({form, tabIndex}: { form: ReturnType<typeof useForm<For
         </div>
     );
 }
-
-const SchemaForm = dynamic(() => Promise.resolve(SchemaFormComponent), {
-    ssr: false,
-    loading: () => <Loader fullscreen/>,
-});
-
-export default SchemaForm;

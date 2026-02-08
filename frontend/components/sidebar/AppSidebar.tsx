@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 import Link from 'next/link'
 import {useLiveQuery} from "@tanstack/react-db";
-import {eventsCollection} from "~/db/collections";
+import {eventsCollection} from "~/lib/db/collections";
 import {SideBarItem} from "~/domain";
 import {Skeleton} from "@/components/ui/skeleton"
 

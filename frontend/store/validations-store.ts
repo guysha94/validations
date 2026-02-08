@@ -2,21 +2,26 @@ import {create} from 'zustand'
 import {immer} from 'zustand/middleware/immer'
 import {createJSONStorage, persist} from 'zustand/middleware'
 import {ValidationErrorInfo} from "~/domain";
+import {EventsSchema} from "~/lib/db/schemas";
+
+
+export type Tab = 'schema' | 'rules' | 'test';
 
 type State = {
 
     addFormOpen: boolean;
-    currentEvent: { id: string, type: string, label: string } | null | undefined;
-    currentTab: string | null | undefined;
+    currentEvent: EventsSchema | null | undefined;
+    currentTab: Tab;
     isFetchingRules: boolean;
-    testResults: ValidationErrorInfo[]
+    testResults: Record<string, ValidationErrorInfo[]>;
 }
 
 type Actions = {
     toggleAddFormOpen: () => void;
-    setCurrentEvent: (eventType: { id: string, type: string, label: string } | null | undefined) => void;
+    setCurrentEvent: (event: EventsSchema | null | undefined) => void;
     setIsFetchingRules: (isFetching: boolean) => void;
-    setCurrentTab: (tab: string | null | undefined) => void;
+    setCurrentTab: (tab: Tab) => void;
+    setTestResults: (eventType: string, results: ValidationErrorInfo[]) => void;
 }
 
 type Store = State & Actions;
@@ -24,9 +29,9 @@ type Store = State & Actions;
 const initialState: State = {
     addFormOpen: false,
     currentEvent: null,
-    currentTab: null,
+    currentTab: "schema",
     isFetchingRules: false,
-    testResults: [],
+    testResults: {},
 }
 
 export const useValidationsStore = create<Store>()(
@@ -36,17 +41,21 @@ export const useValidationsStore = create<Store>()(
                 set((state) => {
                     state.addFormOpen = !state.addFormOpen
                 }),
-            setCurrentEvent: (eventType: { id: string, type: string, label: string } | null | undefined) =>
+            setCurrentEvent: (event: EventsSchema | null | undefined) =>
                 set((state) => {
-                    state.currentEvent = eventType
+                    state.currentEvent = event
                 }),
             setIsFetchingRules: (isFetching: boolean) =>
                 set((state) => {
                     state.isFetchingRules = isFetching
                 }),
-            setCurrentTab: (tab: string | null | undefined) =>
+            setCurrentTab: (tab: Tab) =>
                 set((state) => {
                     state.currentTab = tab
+                }),
+            setTestResults: (eventType: string, results: ValidationErrorInfo[]) =>
+                set((state) => {
+                    state.testResults[eventType] = results;
                 }),
 
         })), {

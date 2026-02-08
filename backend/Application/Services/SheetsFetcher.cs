@@ -1,4 +1,4 @@
-using Backend.Infra.Configs;
+using Backend.Domain.Configs;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;

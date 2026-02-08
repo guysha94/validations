@@ -13,10 +13,13 @@ public class UpdateOne(IEventRepository repo) : Endpoint<EventUpdateDto, Event?>
     {
         var id = Route<Guid>("id");
 
-
-        Logger.LogInformation("Updating event {id}, DTO: {@Dto}", id, dto);
         var dbEvent = dto.ToEvent(id);
-        var e = await repo.UpdateOneAsync(id, dbEvent, ct);
-        await Send.OkAsync(e, ct);
+        var result = await repo.UpdateOneAsync(id, dbEvent, ct);
+        await result.Match(
+            e => e.IsNone
+                ? Send.NotFoundAsync(ct)
+                : Send.OkAsync(e.Case as Event, ct),
+            errors => Send.ResultAsync(Results.InternalServerError(errors))
+        );
     }
 }
