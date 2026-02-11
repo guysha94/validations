@@ -12,14 +12,15 @@ public sealed class ValidationEngine(
     IRuleRepository ruleRepository,
     IEventRepository eventRepository,
     IDbConnectionFactory mysqlFactory,
+    IConfiguration config,
     ILogger<ValidationEngine> logger
 )
 {
     public async Task<ValidateResponseDto> ValidateAsync(ValidateRequestDto dto, CancellationToken ct)
     {
         var (eventType, url, team) = dto;
+        var connectionString = GetConnectionString(team);
         var sw = Stopwatch.GetTimestamp();
-
 
         var eventData = await eventRepository.GetByEventTypeAsync(eventType, ct);
         var sheetTabsRaw = await sheetsFetcher.GetSheetValuesByUrl(url, ct);
@@ -32,16 +33,15 @@ public sealed class ValidationEngine(
         var schemaErrors = ValidateSchema(eventData, sheetTabs);
         if (schemaErrors.Count > 0)
         {
-            logger.LogWarning("Schema validation failed: eventType={EventType} errors={ErrorCount}", eventType,
-                schemaErrors.Count);
+            logger.LogWarning("Schema validation failed, info: {@Info}", new
+            {
+                Request = dto,
+                SchemaErrors = schemaErrors,
+            });
             return new ValidateResponseDto("invalid", schemaErrors);
         }
 
         var rules = await ruleRepository.GetByEventTypeAsync(eventType, team, ct);
-
-
-        // Load relevant reference tables from MySQL into DataTables (Python: DbService.get_all()).
-        var dbTables = new Dictionary<string, DataTable>(StringComparer.Ordinal);
 
         await using var mysqlConn =
             await mysqlFactory.CreateOpenConnectionAsync(team, ct);
@@ -53,17 +53,12 @@ public sealed class ValidationEngine(
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        foreach (var t in tablesNeeded)
-        {
-            var dt = await LoadMySqlTableAsync(mysqlConn, t, ct);
-            if (dt is not null)
-                dbTables[t] = dt;
-        }
-
         await using var conn = new DuckDBConnection("DataSource=:memory:");
         await conn.OpenAsync(ct);
+        LoadMySqlScanner(conn);
 
-        InsertIntoDuckDb(conn, sheetTabs, dbTables);
+
+        InsertIntoDuckDb(conn, connectionString, sheetTabs, tablesNeeded);
 
         var errors = new List<ErrorDetailDto>();
 
@@ -83,8 +78,7 @@ public sealed class ValidationEngine(
                     var rowId = invalid.Columns.Contains("Id")
                         ? TryGetInt(row["Id"]) ?? (idx + 2)
                         : (idx + 2);
-
-                    // Match Python behavior (row_id + 1)
+                    
                     errors.Add(new ErrorDetailDto(
                         tabName,
                         rowId + 1,
@@ -94,7 +88,6 @@ public sealed class ValidationEngine(
             }
             catch (Exception ex)
             {
-                // Failure mode: a single bad rule shouldn't crash the process; surface as an error entry.
                 logger.LogError(ex, "Rule execution failed (ruleId={RuleId})", rule.Id);
                 errors.Add(new ErrorDetailDto("Unknown", 0, $"Rule failed: {rule.Name} ({rule.Id})"));
             }
@@ -175,13 +168,19 @@ public sealed class ValidationEngine(
         return table;
     }
 
+    private string GetConnectionString(string team)
+        => config.GetConnectionString(team)
+           ?? throw new InvalidOperationException(
+               $"Missing connection string: {team}");
+
     private static bool IsSafeIdentifier(string name)
         => !string.IsNullOrWhiteSpace(name) && name.All(ch => char.IsLetterOrDigit(ch) || ch == '_');
 
     private static void InsertIntoDuckDb(
         DuckDBConnection conn,
+        string mysqlConnectionString,
         IReadOnlyDictionary<string, DataTable> sheetTabs,
-        IReadOnlyDictionary<string, DataTable> dbTables
+        IReadOnlyCollection<string> mysqlTables
     )
     {
         foreach (var (name, table) in sheetTabs)
@@ -189,9 +188,13 @@ public sealed class ValidationEngine(
             CreateTableFromDataTable(conn, name, table);
         }
 
-        foreach (var (name, table) in dbTables)
+        foreach (var tableName in mysqlTables)
         {
-            CreateTableFromDataTable(conn, name, table);
+            ExecNonQuery(conn, $@"
+            CREATE OR REPLACE VIEW ${tableName} AS
+            SELECT *
+            FROM mysql_scan('{mysqlConnectionString}', '{tableName}');
+        ");
         }
     }
 
@@ -367,4 +370,17 @@ public sealed class ValidationEngine(
     }
 
     private static string EscapeForSqlLiteral(string s) => s.Replace("'", "''");
+
+    private static void LoadMySqlScanner(DuckDBConnection conn)
+    {
+        ExecNonQuery(conn, "INSTALL mysql_scanner;");
+        ExecNonQuery(conn, "LOAD mysql_scanner;");
+    }
+
+    static void ExecNonQuery(DuckDBConnection con, string sql)
+    {
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.ExecuteNonQuery();
+    }
 }
