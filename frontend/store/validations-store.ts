@@ -1,27 +1,28 @@
-import {create} from 'zustand'
+// import {create} from 'zustand'
 import {immer} from 'zustand/middleware/immer'
 import {createJSONStorage, persist} from 'zustand/middleware'
-import {ValidationErrorInfo} from "~/domain";
-import {EventsSchema} from "~/lib/db/schemas";
+import {Optional, SelectEvent, SelectRule, ValidationErrorInfo} from "~/domain";
+import {create} from "./storage";
 
 
-export type Tab = 'schema' | 'rules' | 'test';
+export type Tab = 'schema' | 'rules' | 'test' | 'settings';
 
 type State = {
-
     addFormOpen: boolean;
-    currentEvent: EventsSchema | null | undefined;
+    currentEvent: Optional<SelectEvent>;
     currentTab: Tab;
     isFetchingRules: boolean;
     testResults: Record<string, ValidationErrorInfo[]>;
+    rules: Record<string, SelectRule[]>;
 }
 
 type Actions = {
     toggleAddFormOpen: () => void;
-    setCurrentEvent: (event: EventsSchema | null | undefined) => void;
+    setCurrentEvent: (event: Optional<SelectEvent>) => void;
     setIsFetchingRules: (isFetching: boolean) => void;
     setCurrentTab: (tab: Tab) => void;
     setTestResults: (eventType: string, results: ValidationErrorInfo[]) => void;
+    setRules: (eventType: string, rules: SelectRule[]) => void;
 }
 
 type Store = State & Actions;
@@ -32,6 +33,7 @@ const initialState: State = {
     currentTab: "schema",
     isFetchingRules: false,
     testResults: {},
+    rules: {},
 }
 
 export const useValidationsStore = create<Store>()(
@@ -41,7 +43,7 @@ export const useValidationsStore = create<Store>()(
                 set((state) => {
                     state.addFormOpen = !state.addFormOpen
                 }),
-            setCurrentEvent: (event: EventsSchema | null | undefined) =>
+            setCurrentEvent: (event: Optional<SelectEvent>) =>
                 set((state) => {
                     state.currentEvent = event
                 }),
@@ -57,9 +59,13 @@ export const useValidationsStore = create<Store>()(
                 set((state) => {
                     state.testResults[eventType] = results;
                 }),
+            setRules: (eventType: string, rules: SelectRule[]) =>
+                set((state) => {
+                    state.rules[eventType] = rules;
+                }),
 
         })), {
-            name: 'validations-storage',
+            name: 'validations',
             storage: createJSONStorage(() => sessionStorage),
         }
     )

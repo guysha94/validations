@@ -2,7 +2,8 @@ namespace Backend.Validation;
 
 public sealed record ValidateRequestDto(
     string EventType,
-    string Url
+    string Url,
+    string Team
 );
 
 public sealed record ErrorDetailDto(

@@ -1,4 +1,6 @@
 import {z} from 'zod'
+import {createInsertSchema, createSelectSchema, createUpdateSchema} from "drizzle-zod";
+import {events, rules} from "~/lib/db/schema";
 
 
 export const DateTimeSchema = z.union([z.string(), z.date()]).transform((val) => {
@@ -13,37 +15,24 @@ export const columnsSchema = z.object({
 
 export type ColumnsSchema = z.infer<typeof columnsSchema>;
 
-export const eventsSchema = z.object({
-    id: z.string(),
-    type: z.string(),
-    label: z.string().nullable().default(null),
-    icon: z.string().nullable().default(null),
-    eventSchema: z.record(z.string(), columnsSchema.array()).default({}),
-    updatedAt: DateTimeSchema,
+const eventsSelectSchema = createSelectSchema(events);
+export const eventsSchema = eventsSelectSchema.extend({
+    updatedAt: z.union([z.string(), z.number(), z.date()]).transform((val) =>
+        val instanceof Date ? val : new Date(val)
+    ),
 });
 
 export type EventsSchema = z.infer<typeof eventsSchema>;
 
-export const eventsInsertSchema = eventsSchema.omit({
-    id: true,
-});
+export const eventsInsertSchema = createInsertSchema(events);
 
 export type EventsInsertSchema = z.infer<typeof eventsInsertSchema>;
 
-export const EventsUpdateSchema = eventsInsertSchema.partial();
+export const eventsUpdateSchema = createUpdateSchema(events).omit({updatedAt: true, createdById: true, id: true});
 
-export type EventsUpdateSchema = z.infer<typeof EventsUpdateSchema>;
+export type EventsUpdateSchema = z.infer<typeof eventsUpdateSchema>;
 
-export const rulesSchema = z.object({
-    id: z.string(),
-    eventId: z.string(),
-    name: z.string(),
-    errorMessage: z.string(),
-    query: z.string(),
-    enabled: z.boolean().default(true),
-    updatedAt: DateTimeSchema,
-    createdAt: DateTimeSchema,
-});
+export const rulesSchema = createSelectSchema(rules);
 
 export type RulesSchema = z.infer<typeof rulesSchema>;
 

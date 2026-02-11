@@ -1,31 +1,41 @@
 "use client";
 
 import {useFieldArray, useForm} from "react-hook-form";
-import {useEffect, useMemo, useState} from "react";
-import {ChevronDown, ChevronUp, Plus, Trash2} from "lucide-react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {ChevronDown, ChevronUp, Download, Plus, Trash2, Upload} from "lucide-react";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {Checkbox} from "@/components/ui/checkbox"
 import {Label} from "@/components/ui/label"
 import {Card, CardContent, CardHeader, CardTitle,} from "~/components/ui/card";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "~/components/ui/form";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {rulesCollection} from "~/lib/db/collections";
 import {Spinner} from "~/components/ui/spinner";
 import {Transaction} from "@tanstack/react-db";
 import SQLEditor from "~/components/SQLEditor";
 import * as z from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
-import {RulesSchema, rulesSchema} from "~/lib/db/schemas";
+import {rulesSchema} from "~/lib/db/schemas";
 import {toast} from "sonner"
+import {useValidationsStore} from "~/store";
+import {useShallow} from "zustand/react/shallow";
+import Papa from "papaparse";
+import slugify from "slugify";
 
 
 type RulesFormProps = {
     eventType: string;
     eventId: string;
-    rules: Array<RulesSchema>;
+    readOnly?: boolean;
 };
 
-const formsRulesSchema = rulesSchema.omit({createdAt: true, updatedAt: true});
+const formsRulesSchema = rulesSchema.omit({updatedAt: true});
 
 type RuleFormData = z.infer<typeof formsRulesSchema>;
 
@@ -38,12 +48,40 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
+const scrollToBottom = () => {
+    window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth'
+    });
+};
 
+const scrollToTop = () => {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+};
 
+function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+export default function RulesForm({eventType, eventId, readOnly = false}: RulesFormProps) {
+    const importFileRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
     const [isAtBottom, setIsAtBottom] = useState(false);
     const [isAtTop, setIsAtTop] = useState(true);
+    const {
+        rules: initialRules,
+    } = useValidationsStore(useShallow((state) => state));
+
+    const rules = useMemo(() => initialRules?.[eventType], [initialRules, eventType]);
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -61,7 +99,8 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
 
     const watchAll = useMemo(() => form.watch(), [form]);
 
-    const onSubmit = async (data: FormData) => {
+    const onSubmit = useCallback(async (data: FormData) => {
+        if (readOnly) return;
         setIsSubmitting(true);
 
         try {
@@ -119,10 +158,10 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, []);
 
 
-    const onRemove = async (index: number) => {
+    const onRemove = useCallback(async (index: number) => {
 
         const ruleId = form.getValues(`rules.${index}`)?.id;
         remove(index);
@@ -134,22 +173,102 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
             optimistic: true,
         });
         await tx.isPersisted.promise;
-    };
+    }, [remove, form]);
 
+    const toggleRuleEnabled = useCallback((index: number) => {
+        if (readOnly) return;
+        update(index, {
+            ...form.getValues(`rules.${index}`),
+            enabled: !(form.getValues(`rules.${index}.enabled`) ?? true),
+        })
+    }, [update, form, readOnly]);
 
-    const scrollToBottom = () => {
-        window.scrollTo({
-            top: document.documentElement.scrollHeight,
-            behavior: 'smooth'
-        });
-    };
+    const rulesForExport = form.watch("rules") ?? [];
 
-    const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    };
+    const exportRulesToCsv = useCallback(() => {
+        const rows = rulesForExport.map((r) => ({
+            name: r.name,
+            description: r.description ?? "",
+            errorMessage: r.errorMessage,
+            query: r.query,
+            enabled: String(r.enabled ?? true),
+        }));
+        const csv = Papa.unparse(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        downloadBlob(blob,  slugify(`${eventType}-rules`).toLowerCase() + ".csv");
+        toast.success("Rules exported to CSV");
+    }, [rulesForExport, eventType]);
+
+    const exportRulesToJson = useCallback(() => {
+        const payload = rulesForExport.map((r) => ({
+            name: r.name,
+            description: r.description ?? "",
+            errorMessage: r.errorMessage,
+            query: r.query,
+            enabled: r.enabled ?? true,
+        }));
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        downloadBlob(blob, slugify(`${eventType}-rules`).toLowerCase() + ".json");
+        toast.success("Rules exported to JSON");
+    }, [rulesForExport, eventType]);
+
+    const handleImportRules = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file || readOnly) return;
+            e.target.value = "";
+            setIsImporting(true);
+            try {
+                const ext = file.name.split(".").pop()?.toLowerCase();
+                const text = await file.text();
+                let toAdd: Array<{ name: string; description?: string; errorMessage: string; query: string; enabled: boolean }> = [];
+                if (ext === "json") {
+                    const parsed = JSON.parse(text);
+                    const arr = Array.isArray(parsed) ? parsed : [parsed];
+                    toAdd = arr.map((r: Record<string, unknown>) => ({
+                        name: String(r.name ?? ""),
+                        description: r.description != null ? String(r.description) : "",
+                        errorMessage: String(r.errorMessage ?? r.error_message ?? ""),
+                        query: String(r.query ?? ""),
+                        enabled: r.enabled !== false,
+                    }));
+                } else if (ext === "csv") {
+                    const { data } = Papa.parse<Record<string, string>>(text, { header: true });
+                    toAdd = (data ?? []).map((row) => ({
+                        name: (row.name ?? row.Name ?? "").trim(),
+                        description: (row.description ?? row.Description ?? "").trim(),
+                        errorMessage: (row.errorMessage ?? row.error_message ?? row["Error Message"] ?? "").trim(),
+                        query: (row.query ?? row.Query ?? "").trim(),
+                        enabled: (row.enabled ?? row.Enabled ?? "true").toLowerCase() !== "false",
+                    })).filter((r) => r.name || r.query);
+                } else {
+                    toast.error("Unsupported format. Use CSV or JSON.");
+                    return;
+                }
+                if (toAdd.length === 0) {
+                    toast.error("No valid rules found in file");
+                    return;
+                }
+                for (const r of toAdd) {
+                    append({
+                        id: `new-${crypto.randomUUID()}`,
+                        name: r.name,
+                        description: r.description ?? "",
+                        errorMessage: r.errorMessage,
+                        query: r.query,
+                        eventId,
+                        enabled: r.enabled,
+                    });
+                }
+                toast.success(`Imported ${toAdd.length} rule(s)`);
+            } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Import failed");
+            } finally {
+                setIsImporting(false);
+            }
+        },
+        [append, eventId, readOnly]
+    );
 
     useEffect(() => {
         const checkScrollPosition = () => {
@@ -163,76 +282,104 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
         };
 
         window.addEventListener('scroll', checkScrollPosition);
-        checkScrollPosition(); // Check initial position
+        checkScrollPosition();
 
         return () => window.removeEventListener('scroll', checkScrollPosition);
     }, []);
 
-    useEffect(() => {
-
-        if (fields.length > 0) return;
-        const fromSession = sessionStorage.getItem(`rules-form:${eventType}`);
-
-        if (!!fromSession) {
-            const parsed = JSON.parse(fromSession) as { rules: RuleFormData[] };
-            const notExistingRules = parsed.rules.filter(r => !rules?.some(existing => existing.id === r.id));
-            if (notExistingRules.length > 0) {
-                notExistingRules.forEach((rule) => {
-                    append({
-                            id: rule.id,
-                            name: rule.name,
-                            errorMessage: rule.errorMessage,
-                            query: rule.query,
-                            eventId: rule.eventId,
-                            enabled: rule.enabled,
-                        },
-                        {shouldFocus: false}
-                    )
-                });
-                return;
-            }
-        }
-
-
-    }, [rules, form, append, eventId, eventType]);
-
-    // store changes in session storage
+   
     useEffect(() => {
         const dataToStore = {
             rules: watchAll.rules,
         };
         sessionStorage.setItem(`rules-form:${eventType}`, JSON.stringify(dataToStore));
     }, [watchAll, eventType]);
-    
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                         <Label>
                             Rules <span className="text-destructive">*</span>
                         </Label>
 
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="cursor-pointer"
-                            size="sm"
-                            onClick={() =>
-                                append({
-                                    id: `new-${crypto.randomUUID()}`,
-                                    name: "",
-                                    errorMessage: "",
-                                    query: "",
-                                    eventId: eventId,
-                                    enabled: true,
-                                }, {shouldFocus: true})
-                            }
-                        >
-                            <Plus className="h-4 w-4"/>
-                            Add Rule
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            {!readOnly && (
+                                <>
+                                    <input
+                                        ref={importFileRef}
+                                        type="file"
+                                        accept=".csv,.json"
+                                        className="hidden"
+                                        onChange={handleImportRules}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="cursor-pointer"
+                                        disabled={isImporting}
+                                        onClick={() => importFileRef.current?.click()}
+                                    >
+                                        <Upload className="h-4 w-4"/>
+                                        {isImporting ? "Importing…" : "Import"}
+                                    </Button>
+                                </>
+                            )}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="cursor-pointer"
+                                        disabled={rulesForExport.length === 0}
+                                    >
+                                        <Download className="h-4 w-4"/>
+                                        Export
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={exportRulesToCsv}
+                                        disabled={rulesForExport.length === 0}
+                                    >
+                                        Export to CSV
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={exportRulesToJson}
+                                        disabled={rulesForExport.length === 0}
+                                    >
+                                        Export to JSON
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            {!readOnly && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="cursor-pointer"
+                                    size="sm"
+                                    onClick={() =>
+                                        append({
+                                            id: `new-${crypto.randomUUID()}`,
+                                            name: "",
+                                            description: "",
+                                            errorMessage: "",
+                                            query: "",
+                                            eventId: eventId,
+                                            enabled: true,
+                                        }, {shouldFocus: true})
+                                    }
+                                >
+                                    <Plus className="h-4 w-4"/>
+                                    Add Rule
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="space-y-4">
@@ -243,11 +390,11 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
                                 className="has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950"
                             >
                                 <CardHeader
-                                    onClick={() => update(index, {...ruleField, enabled: !ruleField.enabled})}
+                                    onClick={() => toggleRuleEnabled(index)}
                                     aria-checked={form.getValues(`rules.${index}.enabled`) ? "true" : "false"}
-                                    tabIndex={0}
+                                    tabIndex={readOnly ? undefined : 0}
                                     role="checkbox"
-                                    className="pb-4 cursor-pointer">
+                                    className={`pb-4 ${readOnly ? "" : "cursor-pointer"}`}>
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-lg">
                                             Rule {index + 1}
@@ -269,10 +416,10 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
                                                             <Checkbox
                                                                 id={`rules.${index}.enabled`}
                                                                 defaultChecked
-                                                                checked={(field?.value || true) as boolean}
-                                                                onChange={() => field.onChange(!field.value)}
+                                                                checked={(typeof field?.value === 'undefined' ? true : field.value) as boolean}
                                                                 onBlur={() => field.onBlur()}
-                                                                onClick={() => field.onChange(!field.value)}
+                                                                onClick={() => toggleRuleEnabled(index)}
+                                                                disabled={readOnly}
                                                                 className="cursor-pointer data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
                                                             />
                                                         </FormControl>
@@ -281,7 +428,7 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
                                                 )}
                                             />
 
-                                            {fields.length > 1 && (
+                                            {!readOnly && fields.length > 1 && (
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
@@ -312,6 +459,7 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
                                                     <Input
                                                         className="bg-background"
                                                         placeholder="e.g., email_format_check"
+                                                        readOnly={readOnly}
                                                         {...field}
                                                     />
                                                 </FormControl>
@@ -335,6 +483,7 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
                                                     <Input
                                                         className="bg-background"
                                                         placeholder="e.g., Invalid email format"
+                                                        readOnly={readOnly}
                                                         {...field}
                                                     />
                                                 </FormControl>
@@ -358,6 +507,7 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
                                                         value={field.value}
                                                         onChange={field.onChange}
                                                         placeholder="e.g., email LIKE '%@%.%'"
+                                                        readOnly={readOnly}
                                                     />
                                                 </FormControl>
                                                 <FormMessage/>
@@ -370,16 +520,18 @@ export default function RulesForm({rules, eventType, eventId}: RulesFormProps) {
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end pt-4">
-                    <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="cursor-pointer"
-                    >
-                        {isSubmitting && <Spinner/>}
-                        {isSubmitting ? "Saving..." : "Save"}
-                    </Button>
-                </div>
+                {!readOnly && (
+                    <div className="flex items-center justify-end pt-4">
+                        <Button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="cursor-pointer"
+                        >
+                            {isSubmitting && <Spinner/>}
+                            {isSubmitting ? "Saving..." : "Save"}
+                        </Button>
+                    </div>
+                )}
             </form>
 
             {isAtTop && (

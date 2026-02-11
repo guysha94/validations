@@ -11,7 +11,7 @@ import {Button} from "~/components/ui/button";
 import {Spinner} from "~/components/ui/spinner";
 import {Card, CardContent, CardHeader, CardTitle} from "~/components/ui/card";
 import {toast} from "sonner";
-import {useValidationsStore} from "~/store";
+import {useUserInfoStore, useValidationsStore} from "~/store";
 import {useShallow} from "zustand/react/shallow";
 
 
@@ -21,7 +21,12 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function TestForm() {
+type Props = {
+    readOnly?: boolean;
+};
+
+export default function TestForm({readOnly = false}: Props) {
+    const {activeTeam} = useUserInfoStore(useShallow((state) => state));
     const {currentEvent, setTestResults} = useValidationsStore(useShallow((state) => state));
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -34,12 +39,12 @@ export default function TestForm() {
     });
 
     const onSubmit = async ({url}: FormData) => {
-        if (!currentEvent) return;
+        if (!currentEvent || readOnly) return;
         setIsSubmitting(true);
 
         try {
 
-            const response = await api.validate({eventType: currentEvent.type, url});
+            const response = await api.validate({eventType: currentEvent.type, url, team: activeTeam!.slug});
             console.log("Validation response:", response);
             setTestResults(currentEvent.type, response.errors?.map((error: any, index: number) => ({index: index + 1, ...error})) || []);
 
@@ -89,6 +94,7 @@ export default function TestForm() {
                                             className="bg-background"
                                             placeholder="https://example.com/spreadsheet"
                                             type="url"
+                                            readOnly={readOnly}
                                             {...field}
                                         />
                                     </FormControl>
@@ -97,16 +103,18 @@ export default function TestForm() {
                             )}
                         />
 
-                        <div className="flex items-center justify-end pt-4">
-                            <Button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="cursor-pointer"
-                            >
-                                {isSubmitting && <Spinner/>}
-                                {isSubmitting ? "Validating..." : "Validate"}
-                            </Button>
-                        </div>
+                        {!readOnly && (
+                            <div className="flex items-center justify-end pt-4">
+                                <Button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="cursor-pointer"
+                                >
+                                    {isSubmitting && <Spinner/>}
+                                    {isSubmitting ? "Validating..." : "Validate"}
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </form>

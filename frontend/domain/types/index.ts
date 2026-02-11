@@ -1,5 +1,8 @@
 import {type LucideIcon} from "lucide-react";
 import {z} from "zod";
+import {authClient} from "~/lib/auth/client";
+import {users,events, invitations, organizations, rules, teams, teamMembers} from "~/lib/db/schema";
+import {setActiveOrganization} from "~/lib/actions";
 
 
 export type  Rule = {
@@ -12,13 +15,6 @@ export type FormData = {
     rules: Rule[];
 };
 
-export type SideBarItem = {
-    id: string;
-    title: string;
-    type: string;
-    url: string;
-    icon?: LucideIcon | null | undefined;
-};
 
 const SQL_VERBS = [
     "select", "insert", "update", "delete",
@@ -77,4 +73,33 @@ export type ValidationErrorInfo = {
 export type DbTable = {
     name: string;
     columns: string[];
+};
+
+
+type Session = typeof authClient.$Infer.Session;
+export type AuthUser = Session["user"];
+export type AuthSession = Session["session"];
+
+export type SelectEvent = typeof events.$inferSelect;
+export type InsertEvent = typeof events.$inferInsert;
+export type SelectRule = typeof rules.$inferSelect;
+export type InsertRule = typeof rules.$inferInsert;
+export type InsertOrg = typeof organizations.$inferInsert;
+export type SelectOrg = typeof organizations.$inferSelect;
+export type InsertTeam = typeof teams.$inferInsert;
+export type SelectTeam = typeof teams.$inferSelect;
+export type SelectInvitation = typeof invitations.$inferSelect;
+export type InsertInvitation = typeof invitations.$inferInsert;
+export type SelectTeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
+export type UserSelect = typeof users.$inferSelect;
+export type UserInsert = typeof users.$inferInsert;
+export type FullOrg = Awaited<ReturnType<typeof setActiveOrganization>>;
+
+
+export type Optional<T> = T | null | undefined;
+
+export type SideBarItem = SelectEvent & {
+    url: string;
+    icon?: LucideIcon | null | undefined;
 };

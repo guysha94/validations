@@ -15,8 +15,9 @@ public sealed class ValidationEngine(
     ILogger<ValidationEngine> logger
 )
 {
-    public async Task<ValidateResponseDto> ValidateAsync(string eventType, string url, CancellationToken ct)
+    public async Task<ValidateResponseDto> ValidateAsync(ValidateRequestDto dto, CancellationToken ct)
     {
+        var (eventType, url, team) = dto;
         var sw = Stopwatch.GetTimestamp();
 
 
@@ -36,15 +37,14 @@ public sealed class ValidationEngine(
             return new ValidateResponseDto("invalid", schemaErrors);
         }
 
-        var rules = await ruleRepository.GetByEventTypeAsync(eventType, ct);
+        var rules = await ruleRepository.GetByEventTypeAsync(eventType, team, ct);
 
 
         // Load relevant reference tables from MySQL into DataTables (Python: DbService.get_all()).
         var dbTables = new Dictionary<string, DataTable>(StringComparer.Ordinal);
 
         await using var mysqlConn =
-            await mysqlFactory.CreateOpenConnectionAsync(MySqlConnectionFactory.BACKEND_CONNECTION_NAME,
-                ct);
+            await mysqlFactory.CreateOpenConnectionAsync(team, ct);
 
 
         var tableNames = await GetMySqlTableNamesAsync(mysqlConn, ct);

@@ -1,21 +1,50 @@
 "use client"
-import {PropsWithChildren} from "react";
+
+import {AuthUIProvider} from "@daveyplate/better-auth-ui"
+import Link from "next/link"
+import {useRouter} from "next/navigation"
+import type {ReactNode} from "react"
+import {authClient} from "~/lib/auth/client";
+import {ROOT_ROUTE} from "~/lib/constants";
+
+const customRoles = [
+    {role: "owner", label: "Owner"},
+    {role: "admin", label: "Admin"},
+    {role: "member", label: "Member"},
+    {role: "viewer", label: "Viewer"},
+]
+
+export default function AuthProviders({children}: { children: ReactNode }) {
+    const router = useRouter();
 
 
-type AuthProviderProps = {
-    session?: any | null | undefined
-}
+    return (
+        <AuthUIProvider
+            authClient={authClient}
+            credentials={false}
+            navigate={router.push}
+            replace={router.replace}
+            social={{providers: ["google"]}}
+            onSessionChange={() => {
+                router.refresh()
+            }}
+            organization={{
+                basePath: "/organization",
+                pathMode: "default",
+                customRoles,
+            }}
 
-export default function AuthProvider({session, children}: PropsWithChildren<AuthProviderProps>) {
-    
-    return children;
-    // return (
-    //     <SessionProvider
-    //         session={session}
-    //         refetchInterval={3 * 60}
-    //         refetchOnWindowFocus
-    //     >
-    //         {children}
-    //     </SessionProvider>
-    // )
+            redirectTo={ROOT_ROUTE}
+            signUp={false}
+            teams={{
+                enabled: true,
+                customRoles,
+
+
+            }}
+            Link={Link}
+        >
+            {children}
+        </AuthUIProvider>
+    )
 }

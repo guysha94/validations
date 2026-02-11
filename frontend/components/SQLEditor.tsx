@@ -18,10 +18,17 @@ type SQLEditorProps = {
     value?: string
     onChange?: (value: string) => void
     placeholder?: string
+    readOnly?: boolean
 }
 
-export default function SQLEditor({value = "", onChange, placeholder = "Enter SQL query..."}: SQLEditorProps) {
-
+export default function SQLEditor({value = "", onChange, placeholder = "Enter SQL query...", readOnly = false}: SQLEditorProps) {
+    if (readOnly) {
+        return (
+            <pre className="bg-muted/30 rounded-lg border p-4 text-sm font-mono overflow-auto max-h-[200px]">
+                {value || <span className="text-muted-foreground">{placeholder}</span>}
+            </pre>
+        );
+    }
 
     const handleEditorChange = (state: SerializedEditorState) => {
 

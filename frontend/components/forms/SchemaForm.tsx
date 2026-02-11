@@ -36,10 +36,11 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 type Props = {
-    event: EventsSchema
+    event: EventsSchema;
+    readOnly?: boolean;
 };
 
-export default function SchemaForm({event}: Props) {
+export default function SchemaForm({event, readOnly = false}: Props) {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [collapsedTabs, setCollapsedTabs] = useState<Set<string>>(new Set());
@@ -68,7 +69,7 @@ export default function SchemaForm({event}: Props) {
     });
 
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
-        console.log("Submitting form with data:", data);
+        if (readOnly) return;
         setIsSubmitting(true);
 
         try {
@@ -156,22 +157,23 @@ export default function SchemaForm({event}: Props) {
                             <Label>
                                 Schema Tabs <span className="text-destructive">*</span>
                             </Label>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="cursor-pointer"
-                                size="sm"
-                                onClick={() => {
-                                    appendTab({
-                                        name: "",
-                                        columns: [],
-                                    });
-                                    // New tab will be collapsed by default (handled in useEffect)
-                                }}
-                            >
-                                <Plus className="h-4 w-4"/>
-                                Add Tab
-                            </Button>
+                            {!readOnly && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="cursor-pointer"
+                                    size="sm"
+                                    onClick={() => {
+                                        appendTab({
+                                            name: "",
+                                            columns: [],
+                                        });
+                                    }}
+                                >
+                                    <Plus className="h-4 w-4"/>
+                                    Add Tab
+                                </Button>
+                            )}
                         </div>
 
                         <div className="flex-1 space-y-4 min-h-0 overflow-y-auto">
@@ -236,7 +238,7 @@ export default function SchemaForm({event}: Props) {
                                                         </Button>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        {tabFields.length > 1 && (
+                                                        {!readOnly && tabFields.length > 1 && (
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
@@ -264,45 +266,49 @@ export default function SchemaForm({event}: Props) {
                                                                 <FormLabel>
                                                                     Tab Name <span className="text-destructive">*</span>
                                                                 </FormLabel>
-                                                                <FormControl>
-                                                                    <Input
-                                                                        className="bg-background"
-                                                                        placeholder="e.g., User Information"
-                                                                        {...field}
-                                                                    />
-                                                                </FormControl>
+                                                                    <FormControl>
+                                                                        <Input
+                                                                            className="bg-background"
+                                                                            placeholder="e.g., User Information"
+                                                                            readOnly={readOnly}
+                                                                            {...field}
+                                                                        />
+                                                                    </FormControl>
                                                                 <FormMessage/>
                                                             </FormItem>
                                                         )}
                                                     />
 
                                                     {/* Columns Section */}
-                                                    <div className="space-y-3 pt-2 border-t">
+                                                        <div className="space-y-3 pt-2 border-t">
                                                         <div className="flex items-center justify-between">
                                                             <Label className="text-sm font-medium">
                                                                 Columns
                                                             </Label>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="cursor-pointer"
-                                                                onClick={() => {
-                                                                    const currentColumns = form.getValues(`tabs.${tabIndex}.columns`) || [];
-                                                                    form.setValue(`tabs.${tabIndex}.columns`, [
-                                                                        ...currentColumns,
-                                                                        {name: "", isReward: false},
-                                                                    ]);
-                                                                }}
-                                                            >
-                                                                <Plus className="h-3 w-3"/>
-                                                                Add Column
-                                                            </Button>
+                                                            {!readOnly && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => {
+                                                                        const currentColumns = form.getValues(`tabs.${tabIndex}.columns`) || [];
+                                                                        form.setValue(`tabs.${tabIndex}.columns`, [
+                                                                            ...currentColumns,
+                                                                            {name: "", isReward: false},
+                                                                        ]);
+                                                                    }}
+                                                                >
+                                                                    <Plus className="h-3 w-3"/>
+                                                                    Add Column
+                                                                </Button>
+                                                            )}
                                                         </div>
 
                                                         <TabColumnsField
                                                             form={form}
                                                             tabIndex={tabIndex}
+                                                            readOnly={readOnly}
                                                         />
                                                     </div>
                                                 </CardContent>
@@ -314,23 +320,25 @@ export default function SchemaForm({event}: Props) {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-end pt-4 shrink-0">
-                        <Button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="cursor-pointer"
-                        >
-                            {isSubmitting && <Spinner/>}
-                            {isSubmitting ? "Saving..." : "Save Schema"}
-                        </Button>
-                    </div>
+                    {!readOnly && (
+                        <div className="flex items-center justify-end pt-4 shrink-0">
+                            <Button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="cursor-pointer"
+                            >
+                                {isSubmitting && <Spinner/>}
+                                {isSubmitting ? "Saving..." : "Save Schema"}
+                            </Button>
+                        </div>
+                    )}
                 </form>
             </Form>
         </div>
     );
 }
 
-function TabColumnsField({form, tabIndex}: { form: ReturnType<typeof useForm<FormData>>; tabIndex: number }) {
+function TabColumnsField({form, tabIndex, readOnly = false}: { form: ReturnType<typeof useForm<FormData>>; tabIndex: number; readOnly?: boolean }) {
     const {fields: columnFields, remove: removeColumn} = useFieldArray({
         control: form.control,
         name: `tabs.${tabIndex}.columns` as const,
@@ -363,6 +371,7 @@ function TabColumnsField({form, tabIndex}: { form: ReturnType<typeof useForm<For
                                                 <Input
                                                     className="bg-background"
                                                     placeholder="e.g., email, user_id"
+                                                    readOnly={readOnly}
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -379,6 +388,7 @@ function TabColumnsField({form, tabIndex}: { form: ReturnType<typeof useForm<For
                                                 <Checkbox
                                                     checked={field.value as boolean || false}
                                                     onCheckedChange={field.onChange}
+                                                    disabled={readOnly}
                                                     className="cursor-pointer"
                                                 />
                                             </FormControl>
@@ -389,15 +399,17 @@ function TabColumnsField({form, tabIndex}: { form: ReturnType<typeof useForm<For
                                     )}
                                 />
                             </div>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeColumn(columnIndex)}
-                                className="text-destructive hover:text-destructive cursor-pointer mt-8"
-                            >
-                                <Trash2 className="h-4 w-4"/>
-                            </Button>
+                            {!readOnly && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeColumn(columnIndex)}
+                                    className="text-destructive hover:text-destructive cursor-pointer mt-8"
+                                >
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            )}
                         </div>
                     </CardContent>
                 </Card>

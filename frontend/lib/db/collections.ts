@@ -20,12 +20,14 @@ export const eventsCollection = createCollection(
         },
         onUpdate: ({transaction}) => {
             const mutation = transaction.mutations[0];
-            const changes = {
-                ...mutation.original,
-                ...mutation.changes,
-            }
+            const { updatedAt: _u, id: _id, teamId: _t, createdById: _c, ...rest } = mutation.original as Record<string, unknown>;
+            const changes = { ...rest, ...mutation.changes } as Parameters<typeof api.events.update>[1];
             return api.events.update(mutation.original.id, changes);
         },
+        onDelete: async ({transaction}) => {
+            const {original} = transaction.mutations[0];
+            return await api.events.delete(original.id);
+        }
     }),
 );
 

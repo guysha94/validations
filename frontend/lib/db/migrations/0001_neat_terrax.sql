@@ -1,0 +1,1 @@
+ALTER TABLE `rules` ADD `edit_access` varchar(32) DEFAULT 'restricted' NOT NULL;

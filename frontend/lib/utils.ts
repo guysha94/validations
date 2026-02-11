@@ -2,7 +2,7 @@ import {type ClassValue, clsx} from "clsx"
 import {twMerge} from "tailwind-merge"
 import {customType} from 'drizzle-orm/mysql-core';
 import {Buffer} from 'buffer';
-import {SQL, sql} from "drizzle-orm"; // Im
+import slugify from 'slugify';
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -41,16 +41,25 @@ export const tinyintBool = customType<{ data: boolean; driverData: number }>({
     },
 });
 
-// UUIDv7 (RFC 9562) generator for TypeScript / JavaScript.
-//
-// Layout (big-endian fields):
-// - 48 bits: unix_ts_ms (milliseconds since Unix epoch)
-// - 4 bits : version = 7
-// - 12 bits: rand_a (random or counter for monotonicity)
-// - 2 bits : variant = IETF (10)
-// - 62 bits: rand_b (random)
-//
-// Spec: RFC 9562.  [oai_citation:2‡datatracker.ietf.org](https://datatracker.ietf.org/doc/html/rfc9562?utm_source=chatgpt.com)
+export const slugVarchar = customType<{ data: string; driverData: string, config: { length?: number }; }>({
+    dataType(config?: { length?: number }) {
+        return `varchar(${config?.length ?? 255})`;
+    },
+
+    toDriver(value: string): string {
+        return slugify(value, {lower: true, strict: true});
+    },
+});
+export const slugText = customType<{ data: string; driverData: string }>({
+    dataType() {
+        return "text";
+    },
+
+    toDriver(value: string): string {
+        return slugify(value, {lower: true, strict: true});
+    },
+});
+
 
 let _lastMs = -1;
 let _lastRandA = 0;
@@ -166,3 +175,4 @@ export function parseUuid(uuid: string): Uint8Array {
     }
     return out;
 }
+

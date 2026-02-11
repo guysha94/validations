@@ -19,6 +19,13 @@ export const api = {
             const data = await response.json();
             return data as EventsSchema[];
         },
+        getBySlug: async (slug: string) => {
+            const url = `${env.NEXT_PUBLIC_API_BASE_URL}/events/${encodeURIComponent(slug)}`;
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            const data = await response.json();
+            return (data ?? null) as EventsSchema | null;
+        },
         create: async (event: EventsInsertSchema) => {
             const url = `${env.NEXT_PUBLIC_API_BASE_URL}/events`;
             const response = await fetch(url, {
@@ -51,6 +58,12 @@ export const api = {
             });
             const data = await response.json();
             return data as { success: boolean; id: string };
+        },
+        canEdit: async (slug: string) => {
+            const url = `${env.NEXT_PUBLIC_API_BASE_URL}/events/${slug}/can-edit`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data as { canEdit: boolean };
         },
     },
     rules: {
@@ -107,7 +120,7 @@ export const api = {
             return data as { success: boolean; id: string };
         }
     },
-    validate: async (formData: { url: string, eventType: string }) => {
+    validate: async (formData: { url: string, eventType: string, team: string }) => {
         const url = `${env.NEXT_PUBLIC_VALIDATION_BASE_URL}/api/validate`;
         const response = await fetch(url, {
             method: 'POST',

@@ -1,24 +1,19 @@
-import {ProtectedPage} from "~/components/auth";
-import NewEventDialog from "~/components/NewEventDialog";
+import {getActiveTeam, getSession} from "~/lib/actions";
+import {redirect} from "next/navigation";
+import {ROOT_ROUTE, SIGN_IN_ROUTE} from "~/lib/constants";
 
 
-export default async function Home() {
+
+export default async function RootPage() {
+
+    const session = await getSession();
+    if (!session ) return redirect(SIGN_IN_ROUTE);
+
+    const team = await getActiveTeam();
+    if (!!team) return redirect(`${ROOT_ROUTE}${team.slug}`);
 
 
-    return (
-        <ProtectedPage>
-            <div className="flex min-h-screen justify-center bg-background py-12 px-4">
-                <div className="w-full max-w-4xl">
-                    <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                        Welcome to the Event Validation Platform
-                    </h4>
-                    <p className="leading-7 [&:not(:first-child)]:mt-6">
-                        This platform allows you to create and manage validation rules for various event types.
-                        Use the sidebar to navigate through existing validations or create new ones.
-                    </p>
-                </div>
-            </div>
-            <NewEventDialog/>
-        </ProtectedPage>
-    );
+    if (!!session) return redirect('/select-team');
+    return redirect(SIGN_IN_ROUTE);
+
 }
