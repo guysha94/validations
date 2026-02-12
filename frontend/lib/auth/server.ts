@@ -7,7 +7,7 @@ import {env} from "~/env/server";
 import {drizzleAdapter} from "better-auth/adapters/drizzle";
 import {validationsDb} from "~/lib/db";
 import {events, invitations, members, organizations, rules, teamMembers, teams, users,} from "~/lib/db/schema";
-import {uuidv7} from "~/lib/utils";
+import { uuidv7 } from "uuidv7";
 import {nextCookies} from "better-auth/next-js";
 import nodemailer from "nodemailer";
 import {render} from "@react-email/render";

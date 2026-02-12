@@ -7,7 +7,7 @@ import {
     EventsUpdateSchema,
     RulesInsertSchema,
     RulesSchema,
-    RulesUpdateSchema
+    rulesUpdateSchema
 } from "~/lib/db/schemas";
 
 
@@ -86,7 +86,7 @@ export const api = {
             const data = await response.json();
             return data as RulesSchema;
         },
-        updateOne: async (id: string, rules: RulesUpdateSchema) => {
+        updateOne: async (id: string, rules: rulesUpdateSchema) => {
             const url = `${env.NEXT_PUBLIC_API_BASE_URL}/rules/${id}`;
             const response = await fetch(url, {
                 method: 'PUT',
@@ -98,7 +98,7 @@ export const api = {
             const data = await response.json();
             return data as RulesSchema;
         },
-        updateMany: async (updates: Array<{ id: string; changes: RulesUpdateSchema }>) => {
+        updateMany: async (updates: Array<{ id: string; changes: rulesUpdateSchema }>) => {
             const url = `${env.NEXT_PUBLIC_API_BASE_URL}/rules`;
             console.log(JSON.stringify(updates))
             const response = await fetch(url, {

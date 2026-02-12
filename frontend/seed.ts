@@ -2,8 +2,7 @@ import "dotenv/config";
 import {eq, sql} from "drizzle-orm";
 import {validationsDb} from "~/lib/db";
 import {organizations, teams} from "~/lib/db/schema";
-import {uuidv7} from "~/lib/utils";
-import {render} from "@react-email/render";
+import { uuidv7 } from "uuidv7";
 
 
 const org = {

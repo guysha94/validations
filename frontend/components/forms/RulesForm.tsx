@@ -1,7 +1,7 @@
 "use client";
 
 import {useFieldArray, useForm} from "react-hook-form";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {ChangeEvent, useCallback, useEffect, useRef, useState} from "react";
 import {ChevronDown, ChevronUp, Download, Plus, Trash2, Upload} from "lucide-react";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
@@ -9,25 +9,23 @@ import {Checkbox} from "@/components/ui/checkbox"
 import {Label} from "@/components/ui/label"
 import {Card, CardContent, CardHeader, CardTitle,} from "~/components/ui/card";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "~/components/ui/form";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu";
 import {rulesCollection} from "~/lib/db/collections";
 import {Spinner} from "~/components/ui/spinner";
 import {Transaction} from "@tanstack/react-db";
 import SQLEditor from "~/components/SQLEditor";
 import * as z from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
-import {rulesSchema} from "~/lib/db/schemas";
+import {RulesSchema, rulesSchema,} from "~/lib/db/schemas";
 import {toast} from "sonner"
-import {useValidationsStore} from "~/store";
-import {useShallow} from "zustand/react/shallow";
 import Papa from "papaparse";
 import slugify from "slugify";
-
+import {useRules} from "~/hooks";
+import Loader from "~/components/Loader";
+import {uuidv7} from "uuidv7";
+import {downloadBlob} from "~/lib/utils";
+import useFormPersist from 'react-hook-form-persist';
+import {useSessionStorage} from "@reactuses/core";
 
 type RulesFormProps = {
     eventType: string;
@@ -35,15 +33,9 @@ type RulesFormProps = {
     readOnly?: boolean;
 };
 
-const formsRulesSchema = rulesSchema.omit({updatedAt: true});
-
-type RuleFormData = z.infer<typeof formsRulesSchema>;
 
 const formSchema = z.object({
-    rules: z.array(formsRulesSchema).min(1, {
-        message: "At least one rule is" +
-            " required"
-    }),
+    rules: z.array(rulesSchema),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -62,33 +54,48 @@ const scrollToTop = () => {
     });
 };
 
-function downloadBlob(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+function getDisplayRules(dbRules: RulesSchema[], draftCreateRules: Record<string, RulesSchema> | undefined, draftUpdateRules: Record<string, RulesSchema> | undefined, deletedIds: Set<string> | undefined): RulesSchema[] {
+
+    const merged = {};
+
+    for (const rule of dbRules) {
+        if (deletedIds?.has(rule.id)) continue;
+        if (draftUpdateRules && draftUpdateRules[rule.id]) {
+            merged[rule.id] = {
+                ...rule,
+                ...draftUpdateRules[rule.id],
+            }
+        } else {
+            merged[rule.id] = rule;
+        }
+    }
+
+    if (!!draftCreateRules) {
+        const createdThatNotInDeleted = Object.entries(draftCreateRules).filter(([id]) => !deletedIds?.has(id));
+        createdThatNotInDeleted?.forEach(([id, rule]) => {
+            merged[id] = rule;
+        });
+    }
+
+    return Object.values(merged);
 }
+
 
 export default function RulesForm({eventType, eventId, readOnly = false}: RulesFormProps) {
     const importFileRef = useRef<HTMLInputElement>(null);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [isAtBottom, setIsAtBottom] = useState(false);
     const [isAtTop, setIsAtTop] = useState(true);
-    const {
-        rules: initialRules,
-    } = useValidationsStore(useShallow((state) => state));
+    const [deletedIds, setDeletedIds] = useSessionStorage<string[]>(`rules-form-deleted-${eventId}`, []);
+    const {rules, isReady} = useRules();
 
-    const rules = useMemo(() => initialRules?.[eventType], [initialRules, eventType]);
 
-    const form = useForm({
+    const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         mode: "onChange",
-        defaultValues: {
-            rules: rules,
-        }
+
     });
 
 
@@ -97,17 +104,23 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
         name: "rules",
     });
 
-    const watchAll = useMemo(() => form.watch(), [form]);
+    const {clear} = useFormPersist(`rules-form`, {
+        watch: form.watch,
+        setValue: form.setValue,
+        storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+    });
 
-    const onSubmit = useCallback(async (data: FormData) => {
+    const onSubmit = async (data: FormData) => {
+
+        console.log("Submitting data:", data);
         if (readOnly) return;
         setIsSubmitting(true);
 
         try {
-
+            const persistedRulesId = new Set((rules ?? []).map(r => r.id));
             const {toInsert, toUpdate} = data.rules.reduce((acc, r) => {
-                if (r.id.includes("new-")) acc.toInsert.push(r);
-                else acc.toUpdate.push(r);
+                if (!persistedRulesId.has(r.id)) acc.toInsert.push({...r, updatedAt: new Date(), eventId});
+                else acc.toUpdate.push({...r, updatedAt: new Date(), eventId});
                 return acc;
             }, {toInsert: [] as typeof data.rules, toUpdate: [] as typeof data.rules});
             const tasks: Promise<Transaction<Record<string, unknown>>>[] = [];
@@ -131,6 +144,7 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                                 draft.errorMessage = updated.errorMessage;
                                 draft.query = updated.query;
                                 draft.enabled = updated.enabled;
+                                draft.updatedAt = new Date();
                             }
                         })
                     });
@@ -148,6 +162,19 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                 style: {backgroundColor: "#4ade80", color: "white"},
             })
 
+            const deletedSet = new Set(deletedIds);
+            const toDelete = rules?.filter(r => deletedSet.has(r.id)) ?? [];
+
+            for (const rule of toDelete) {
+                const tx = rulesCollection.delete(rule.id, {
+                    optimistic: true,
+                });
+                await tx.isPersisted.promise;
+            }
+
+
+            clear();
+            setDeletedIds([]);
 
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "An error occurred", {
@@ -158,35 +185,31 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
         } finally {
             setIsSubmitting(false);
         }
-    }, []);
+    };
 
 
-    const onRemove = useCallback(async (index: number) => {
+    const onRemove = useCallback((index: number) => {
 
         const ruleId = form.getValues(`rules.${index}`)?.id;
+        if (!ruleId) return;
         remove(index);
+        setDeletedIds((prev) => Array.from(new Set([...(prev || []), ruleId])));
 
-        if (ruleId.includes("new-")) return;
-
-
-        const tx = rulesCollection.delete(ruleId, {
-            optimistic: true,
-        });
-        await tx.isPersisted.promise;
-    }, [remove, form]);
+    }, [form, remove, setDeletedIds]);
 
     const toggleRuleEnabled = useCallback((index: number) => {
         if (readOnly) return;
+        const values = form.getValues(`rules.${index}`);
+        if (!values?.id) return;
         update(index, {
-            ...form.getValues(`rules.${index}`),
-            enabled: !(form.getValues(`rules.${index}.enabled`) ?? true),
+            ...values,
+            enabled: !values.enabled,
         })
     }, [update, form, readOnly]);
 
-    const rulesForExport = form.watch("rules") ?? [];
 
     const exportRulesToCsv = useCallback(() => {
-        const rows = rulesForExport.map((r) => ({
+        const rows = rules.map((r) => ({
             name: r.name,
             description: r.description ?? "",
             errorMessage: r.errorMessage,
@@ -194,26 +217,26 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
             enabled: String(r.enabled ?? true),
         }));
         const csv = Papa.unparse(rows);
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        downloadBlob(blob,  slugify(`${eventType}-rules`).toLowerCase() + ".csv");
+        const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+        downloadBlob(blob, slugify(`${eventType}-rules`).toLowerCase() + ".csv");
         toast.success("Rules exported to CSV");
-    }, [rulesForExport, eventType]);
+    }, [rules, eventType]);
 
     const exportRulesToJson = useCallback(() => {
-        const payload = rulesForExport.map((r) => ({
+        const payload = rules.map((r) => ({
             name: r.name,
             description: r.description ?? "",
             errorMessage: r.errorMessage,
             query: r.query,
             enabled: r.enabled ?? true,
         }));
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {type: "application/json"});
         downloadBlob(blob, slugify(`${eventType}-rules`).toLowerCase() + ".json");
         toast.success("Rules exported to JSON");
-    }, [rulesForExport, eventType]);
+    }, [rules, eventType]);
 
     const handleImportRules = useCallback(
-        async (e: React.ChangeEvent<HTMLInputElement>) => {
+        async (e: ChangeEvent<HTMLInputElement>) => {
             const file = e.target.files?.[0];
             if (!file || readOnly) return;
             e.target.value = "";
@@ -221,7 +244,14 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
             try {
                 const ext = file.name.split(".").pop()?.toLowerCase();
                 const text = await file.text();
-                let toAdd: Array<{ name: string; description?: string; errorMessage: string; query: string; enabled: boolean }> = [];
+                let toAdd: Array<{
+                    name: string;
+                    description?: string;
+                    errorMessage: string;
+                    query: string;
+                    enabled: boolean,
+                    editAccess: string;
+                }> = [];
                 if (ext === "json") {
                     const parsed = JSON.parse(text);
                     const arr = Array.isArray(parsed) ? parsed : [parsed];
@@ -231,15 +261,17 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                         errorMessage: String(r.errorMessage ?? r.error_message ?? ""),
                         query: String(r.query ?? ""),
                         enabled: r.enabled !== false,
+                        editAccess: String(r.editAccess ?? r.EditAccess ?? "public").trim().toLowerCase(),
                     }));
                 } else if (ext === "csv") {
-                    const { data } = Papa.parse<Record<string, string>>(text, { header: true });
+                    const {data} = Papa.parse<Record<string, string>>(text, {header: true});
                     toAdd = (data ?? []).map((row) => ({
                         name: (row.name ?? row.Name ?? "").trim(),
                         description: (row.description ?? row.Description ?? "").trim(),
                         errorMessage: (row.errorMessage ?? row.error_message ?? row["Error Message"] ?? "").trim(),
                         query: (row.query ?? row.Query ?? "").trim(),
                         enabled: (row.enabled ?? row.Enabled ?? "true").toLowerCase() !== "false",
+                        editAccess: (row.editAccess ?? row.EditAccess ?? "public").trim().toLowerCase(),
                     })).filter((r) => r.name || r.query);
                 } else {
                     toast.error("Unsupported format. Use CSV or JSON.");
@@ -250,15 +282,18 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                     return;
                 }
                 for (const r of toAdd) {
-                    append({
-                        id: `new-${crypto.randomUUID()}`,
+                    const newRule = {
+                        id: uuidv7(),
                         name: r.name,
                         description: r.description ?? "",
                         errorMessage: r.errorMessage,
                         query: r.query,
                         eventId,
                         enabled: r.enabled,
-                    });
+                        editAccess: r.editAccess,
+                        updatedAt: new Date(),
+                    };
+                    append(newRule);
                 }
                 toast.success(`Imported ${toAdd.length} rule(s)`);
             } catch (err) {
@@ -269,6 +304,31 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
         },
         [append, eventId, readOnly]
     );
+
+    const handleAddRule = useCallback(() => {
+
+        const newRule = {
+            id: uuidv7(),
+            name: "",
+            description: "",
+            errorMessage: "",
+            query: "",
+            eventId: eventId,
+            enabled: true,
+            editAccess: "public",
+            updatedAt: new Date(),
+        };
+
+        append(newRule, {shouldFocus: true})
+    }, [append, eventId]);
+
+    const handleResetChanges = useCallback(() => {
+
+        clear();
+        form.reset({
+            rules,
+        });
+    }, [form, rules, clear]);
 
     useEffect(() => {
         const checkScrollPosition = () => {
@@ -287,17 +347,26 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
         return () => window.removeEventListener('scroll', checkScrollPosition);
     }, []);
 
-   
     useEffect(() => {
-        const dataToStore = {
-            rules: watchAll.rules,
-        };
-        sessionStorage.setItem(`rules-form:${eventType}`, JSON.stringify(dataToStore));
-    }, [watchAll, eventType]);
+        if (!isReady || !rules?.length) return;
+
+        const deletedSet = new Set(deletedIds || []);
+        const existingIds = new Set(form.getValues("rules")?.map(r => r.id) ?? []);
+        rules?.filter((r) => !existingIds.has(r.id) && !deletedSet.has(r.id)).forEach((rule) => {
+
+            append(rule);
+        });
+    }, [isReady, rules, append, form, deletedIds]);
+
+
+    if (!isReady || !eventId || !eventType) {
+        return <Loader fullscreen/>
+    }
+
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form className="space-y-6">
                 <div className="space-y-4">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <Label>
@@ -334,7 +403,7 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                                         variant="outline"
                                         size="sm"
                                         className="cursor-pointer"
-                                        disabled={rulesForExport.length === 0}
+                                        disabled={rules?.length === 0}
                                     >
                                         <Download className="h-4 w-4"/>
                                         Export
@@ -344,14 +413,14 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                                     <DropdownMenuItem
                                         className="cursor-pointer"
                                         onClick={exportRulesToCsv}
-                                        disabled={rulesForExport.length === 0}
+                                        disabled={rules?.length === 0}
                                     >
                                         Export to CSV
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         className="cursor-pointer"
                                         onClick={exportRulesToJson}
-                                        disabled={rulesForExport.length === 0}
+                                        disabled={rules?.length === 0}
                                     >
                                         Export to JSON
                                     </DropdownMenuItem>
@@ -363,17 +432,7 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                                     variant="outline"
                                     className="cursor-pointer"
                                     size="sm"
-                                    onClick={() =>
-                                        append({
-                                            id: `new-${crypto.randomUUID()}`,
-                                            name: "",
-                                            description: "",
-                                            errorMessage: "",
-                                            query: "",
-                                            eventId: eventId,
-                                            enabled: true,
-                                        }, {shouldFocus: true})
-                                    }
+                                    onClick={handleAddRule}
                                 >
                                     <Plus className="h-4 w-4"/>
                                     Add Rule
@@ -390,7 +449,6 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                                 className="has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950"
                             >
                                 <CardHeader
-                                    onClick={() => toggleRuleEnabled(index)}
                                     aria-checked={form.getValues(`rules.${index}.enabled`) ? "true" : "false"}
                                     tabIndex={readOnly ? undefined : 0}
                                     role="checkbox"
@@ -433,9 +491,7 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={async () =>
-                                                        await onRemove(index)
-                                                    }
+                                                    onClick={() => onRemove(index)}
                                                     className="text-destructive hover:text-destructive cursor-pointer"
                                                 >
                                                     <Trash2 className="h-4 w-4"/>
@@ -445,7 +501,6 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {/* Rule Name */}
                                     <FormField
                                         control={form.control}
                                         name={`rules.${index}.name`}
@@ -521,9 +576,18 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                 </div>
 
                 {!readOnly && (
-                    <div className="flex items-center justify-end pt-4">
+                    <div className="flex items-center justify-end pt-4 gap-2">
                         <Button
-                            type="submit"
+                            type="button"
+                            variant="outline"
+                            disabled={isSubmitting}
+                            onClick={handleResetChanges}
+                        >
+                            Reset Changes
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={async () => await onSubmit(form.getValues())}
                             disabled={isSubmitting}
                             className="cursor-pointer"
                         >

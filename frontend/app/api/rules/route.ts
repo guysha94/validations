@@ -5,7 +5,7 @@ import { auth } from "~/lib/auth/server";
 import { canEditEvent } from "~/lib/db/crud";
 import { rules } from "~/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { uuidv7 } from "~/lib/utils";
+import { uuidv7 } from "uuidv7";
 
 export async function GET(req: NextRequest) {
     try {

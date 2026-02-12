@@ -2,7 +2,7 @@ import {type NextRequest, NextResponse} from "next/server";
 import {headers} from "next/headers";
 import {db} from "@/lib/db";
 import {auth} from "~/lib/auth/server";
-import {uuidv7} from "~/lib/utils";
+import { uuidv7 } from "uuidv7";
 import {eventPermissions, events} from "~/lib/db/schema";
 import {fetchAllEvents} from "~/lib/db/crud";
 

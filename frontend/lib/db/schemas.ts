@@ -36,16 +36,14 @@ export const rulesSchema = createSelectSchema(rules);
 
 export type RulesSchema = z.infer<typeof rulesSchema>;
 
-export const rulesInsertSchema = rulesSchema.omit({
-    id: true,
-});
+export const rulesInsertSchema = createInsertSchema(rules);
 
 export type RulesInsertSchema = z.infer<typeof rulesInsertSchema>;
 
 
-export const RulesUpdateSchema = rulesInsertSchema.partial();
+export const rulesUpdateSchema = createUpdateSchema(rules);
 
-export type RulesUpdateSchema = z.infer<typeof RulesUpdateSchema>;
+export type RulesUpdateSchema = z.infer<typeof rulesUpdateSchema>;
 
 export const usersSchema = z.object({
     id: z.string(),

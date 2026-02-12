@@ -29,6 +29,7 @@ import {toast} from "sonner";
 import Papa from "papaparse";
 import {api} from "~/lib/api";
 import {useAuth} from "~/hooks/useAuth";
+import {useEvents} from "~/hooks";
 
 function downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
@@ -50,10 +51,7 @@ export function NavMainComponent({
     const {user} = useAuth();
     const {toggleAddFormOpen, setCurrentEvent} = useValidationsStore(useShallow((state) => state));
     const {activeTeam} = useUserInfoStore(useShallow((state) => state));
-    const {data: events = [], isLoading: isLoadingEvents} = useLiveQuery(
-        (q) => q.from({events: eventsCollection})
-            .where(({events}) => eq(events.teamId, teamId)),
-    );
+    const {events, isLoading: isLoadingEvents} = useEvents();
     const importFileRef = useRef<HTMLInputElement>(null);
 
     const [renameEvent, setRenameEvent] = useState<SelectEvent | null>(null);
