@@ -6,8 +6,8 @@ import {admin as adminPlugin, organization} from "better-auth/plugins";
 import {env} from "~/env/server";
 import {drizzleAdapter} from "better-auth/adapters/drizzle";
 import {validationsDb} from "~/lib/db";
-import {events, invitations, members, organizations, rules, teamMembers, teams, users,} from "~/lib/db/schema";
-import { uuidv7 } from "uuidv7";
+import {invitations, members, organizations, teamMembers, teams, users,} from "~/lib/db/schema";
+import {uuidv7} from "uuidv7";
 import {nextCookies} from "better-auth/next-js";
 import nodemailer from "nodemailer";
 import {render} from "@react-email/render";
@@ -251,8 +251,3 @@ export type ServerAuthUser = Session["user"];
 export type ServerAuthSession = Session["session"];
 export type ServerSession = { session: ServerAuthSession, user: ServerAuthUser };
 
-
-export type SelectEvent = typeof events.$inferSelect;
-export type InsertEvent = typeof events.$inferInsert;
-export type SelectRule = typeof rules.$inferSelect;
-export type InsertRule = typeof rules.$inferInsert;

@@ -15,6 +15,13 @@
       "when": 1770819505893,
       "tag": "0001_neat_terrax",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1770908342603,
+      "tag": "0002_bright_skreet",
+      "breakpoints": true
     }
   ]
 }

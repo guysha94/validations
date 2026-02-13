@@ -21,14 +21,13 @@ type SQLEditorProps = {
     readOnly?: boolean
 }
 
-export default function SQLEditor({value = "", onChange, placeholder = "Enter SQL query...", readOnly = false}: SQLEditorProps) {
-    if (readOnly) {
-        return (
-            <pre className="bg-muted/30 rounded-lg border p-4 text-sm font-mono overflow-auto max-h-[200px]">
-                {value || <span className="text-muted-foreground">{placeholder}</span>}
-            </pre>
-        );
-    }
+export default function SQLEditor({
+                                      value = "",
+                                      onChange,
+                                      placeholder = "Enter SQL query...",
+                                      readOnly = false
+                                  }: SQLEditorProps) {
+
 
     const handleEditorChange = (state: SerializedEditorState) => {
 
@@ -73,7 +72,13 @@ export default function SQLEditor({value = "", onChange, placeholder = "Enter SQ
             version: 1,
         },
     } as unknown as SerializedEditorState), [value]);
-
+    if (readOnly) {
+        return (
+            <pre className="bg-muted/30 rounded-lg border p-4 text-sm font-mono overflow-auto max-h-[200px]">
+                {value || <span className="text-muted-foreground">{placeholder}</span>}
+            </pre>
+        );
+    }
     return (
 
         <Editor
@@ -84,14 +89,6 @@ export default function SQLEditor({value = "", onChange, placeholder = "Enter SQ
     )
 }
 
-type PluginsProps = {
-    value: string
-    onChange?: (value: string) => void
-    placeholder: string
-    floatingAnchorElem: HTMLDivElement | null
-    onRef: (elem: HTMLDivElement) => void
-    isInitialMount: React.MutableRefObject<boolean>
-}
 
 // SQL Keywords for autocomplete
 const SQL_KEYWORDS = [
@@ -124,11 +121,7 @@ export function SQLAutocompletePlugin() {
     const wordEndRef = useRef<number>(0)
 
     useEffect(() => {
-        let lastMatch: string | null = null
         let suggestionText: string | null = null
-        let wordStart: number = 0
-        let wordEnd: number = 0
-        let completeKeyword: string | null = null
 
         function findSQLSuggestion(text: string, cursorPos: number): {
             suggestion: string | null,
@@ -234,7 +227,6 @@ export function SQLAutocompletePlugin() {
                     wordStartRef.current = result.start
                     wordEndRef.current = result.end
                     completeKeywordRef.current = result.keyword
-                    lastMatch = text.substring(0, absoluteOffset)
 
                     // Get cursor position for tooltip
                     const rootElement = editor.getRootElement()
@@ -258,7 +250,6 @@ export function SQLAutocompletePlugin() {
                     suggestionRef.current = null
                     completeKeywordRef.current = null
                     suggestionText = null
-                    lastMatch = null
                 }
             })
         }

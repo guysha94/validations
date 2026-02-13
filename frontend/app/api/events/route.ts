@@ -4,7 +4,7 @@ import {db} from "@/lib/db";
 import {auth} from "~/lib/auth/server";
 import { uuidv7 } from "uuidv7";
 import {eventPermissions, events} from "~/lib/db/schema";
-import {fetchAllEvents} from "~/lib/db/crud";
+import {fetchAllEvents, insertAuditLog} from "~/lib/db/crud";
 
 export async function GET(req: NextRequest) {
     const [eventsList, error] = await fetchAllEvents();
@@ -54,6 +54,13 @@ export async function POST(req: NextRequest) {
                 eventId,
                 userId: session.user.id,
                 role: "owner",
+            });
+            await insertAuditLog({
+                action: "create",
+                entityType: "event",
+                entityId: eventId,
+                actorId: session.user.id,
+                payload: { type: e.type, label: e.label ?? e.title ?? e.type },
             });
             const [row] = await db.validations
                 .query.events.findMany({ where: (t, { eq }) => eq(t.id, eventId) });

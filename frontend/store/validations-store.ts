@@ -1,6 +1,7 @@
-// import {create} from 'zustand'
+import "client-only";
 import {immer} from 'zustand/middleware/immer'
-import {createJSONStorage, persist} from 'zustand/middleware'
+import {createJSONStorage, persist, subscribeWithSelector} from 'zustand/middleware'
+
 import {Optional, SelectEvent, SelectRule, ValidationErrorInfo} from "~/domain";
 import {create} from "./storage";
 
@@ -37,7 +38,7 @@ const initialState: State = {
 }
 
 export const useValidationsStore = create<Store>()(
-    persist(immer((set) => ({
+    subscribeWithSelector(persist(immer((set) => ({
             ...initialState,
             toggleAddFormOpen: () =>
                 set((state) => {
@@ -68,5 +69,5 @@ export const useValidationsStore = create<Store>()(
             name: 'validations',
             storage: createJSONStorage(() => sessionStorage),
         }
-    )
+    ))
 )

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { auth } from "~/lib/auth/server";
-import { canEditEvent } from "~/lib/db/crud";
+import { canEditEvent, insertAuditLog } from "~/lib/db/crud";
 import { events } from "@/lib/db/schema";
 import { eq, or, sql } from "drizzle-orm";
 
@@ -56,6 +56,13 @@ export async function PUT(req: NextRequest, props: Props) {
     delete data.updatedAt;
     try {
         await db.validations.update(events).set(data).where(slugWhere(slug));
+        await insertAuditLog({
+            action: "update",
+            entityType: "event",
+            entityId: eventId,
+            actorId: session.user.id,
+            payload: { type: data.type, label: data.label },
+        });
         const updated = await db.validations.query.events.findFirst({
             where: slugWhere(slug),
         });
@@ -88,6 +95,12 @@ export async function DELETE(req: NextRequest, props: Props) {
 
     try {
         await db.validations.delete(events).where(slugWhere(slug));
+        await insertAuditLog({
+            action: "delete",
+            entityType: "event",
+            entityId: eventId,
+            actorId: session.user.id,
+        });
         return NextResponse.json({ success: true, id: eventId }, { status: 200 });
     } catch (error) {
         console.error("Error deleting event:", error);

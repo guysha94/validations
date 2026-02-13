@@ -20,8 +20,14 @@ export const eventsCollection = createCollection(
         },
         onUpdate: ({transaction}) => {
             const mutation = transaction.mutations[0];
-            const { updatedAt: _u, id: _id, teamId: _t, createdById: _c, ...rest } = mutation.original as Record<string, unknown>;
-            const changes = { ...rest, ...mutation.changes } as Parameters<typeof api.events.update>[1];
+            const {
+                updatedAt: _u,
+                id: _id,
+                teamId: _t,
+                createdById: _c,
+                ...rest
+            } = mutation.original as Record<string, unknown>;
+            const changes = {...rest, ...mutation.changes} as Parameters<typeof api.events.update>[1];
             return api.events.update(mutation.original.id, changes);
         },
         onDelete: async ({transaction}) => {
@@ -40,6 +46,7 @@ export const rulesCollection = createCollection(
         getKey: (item) => item.id,
         queryFn: () => api.rules.getAll(),
         onInsert: ({transaction}) => {
+
             return api.rules.create(transaction.mutations.map(m => m.modified));
         },
         onUpdate: async ({transaction}) => {
@@ -49,7 +56,6 @@ export const rulesCollection = createCollection(
                 const mutation = transaction.mutations[0];
                 return api.rules.updateOne(mutation.original.id, mutation.changes);
             }
-
             const updates = transaction.mutations.map(m => ({
                 id: m.key,
                 changes: m.changes
@@ -57,7 +63,13 @@ export const rulesCollection = createCollection(
             return await api.rules.updateMany(updates);
         },
         onDelete: async ({transaction}) => {
-            const {original} = transaction.mutations[0];
-            return await api.rules.delete(original.id);
+            if (transaction.mutations.length === 0) return;
+            if (transaction.mutations.length === 1) {
+                const {original} = transaction.mutations[0];
+                return await api.rules.delete(original.id);
+            }
+            const ids = transaction.mutations.map(m => m.original.id);
+            return await api.rules.deleteMany(ids);
+
         },
     }));

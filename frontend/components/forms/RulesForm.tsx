@@ -1,7 +1,7 @@
 "use client";
 
 import {useFieldArray, useForm} from "react-hook-form";
-import {ChangeEvent, useCallback, useEffect, useRef, useState} from "react";
+import {ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {ChevronDown, ChevronUp, Download, Plus, Trash2, Upload} from "lucide-react";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
@@ -10,9 +10,7 @@ import {Label} from "@/components/ui/label"
 import {Card, CardContent, CardHeader, CardTitle,} from "~/components/ui/card";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "~/components/ui/form";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu";
-import {rulesCollection} from "~/lib/db/collections";
 import {Spinner} from "~/components/ui/spinner";
-import {Transaction} from "@tanstack/react-db";
 import SQLEditor from "~/components/SQLEditor";
 import * as z from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -24,8 +22,8 @@ import {useRules} from "~/hooks";
 import Loader from "~/components/Loader";
 import {uuidv7} from "uuidv7";
 import {downloadBlob} from "~/lib/utils";
-import useFormPersist from 'react-hook-form-persist';
 import {useSessionStorage} from "@reactuses/core";
+import useFormPersist from "react-hook-form-persist";
 
 type RulesFormProps = {
     eventType: string;
@@ -89,22 +87,21 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
     const [isAtBottom, setIsAtBottom] = useState(false);
     const [isAtTop, setIsAtTop] = useState(true);
     const [deletedIds, setDeletedIds] = useSessionStorage<string[]>(`rules-form-deleted-${eventId}`, []);
-    const {rules, isReady} = useRules();
-
-
+    const {rules, isReady, upsert, deleteMany} = useRules();
+    // const {activeFormRules, clearForm, removeRule, addRule} = useFormStore(state => state);
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         mode: "onChange",
 
     });
 
-
     const {fields, append, remove, update} = useFieldArray({
         control: form.control,
         name: "rules",
     });
+    const isLoading = useMemo(() => !isReady || !eventId || !eventType, [isReady, eventId, eventType]);
 
-    const {clear} = useFormPersist(`rules-form`, {
+    const {clear} = useFormPersist(`rules-form-${eventId}`, {
         watch: form.watch,
         setValue: form.setValue,
         storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
@@ -112,69 +109,27 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
 
     const onSubmit = async (data: FormData) => {
 
-        console.log("Submitting data:", data);
+
         if (readOnly) return;
         setIsSubmitting(true);
 
         try {
-            const persistedRulesId = new Set((rules ?? []).map(r => r.id));
-            const {toInsert, toUpdate} = data.rules.reduce((acc, r) => {
-                if (!persistedRulesId.has(r.id)) acc.toInsert.push({...r, updatedAt: new Date(), eventId});
-                else acc.toUpdate.push({...r, updatedAt: new Date(), eventId});
-                return acc;
-            }, {toInsert: [] as typeof data.rules, toUpdate: [] as typeof data.rules});
-            const tasks: Promise<Transaction<Record<string, unknown>>>[] = [];
-            if (toInsert.length) {
-                const insertTx = rulesCollection.insert(toInsert.map(r => rulesSchema.parse(r)));
-                tasks.push(insertTx.isPersisted.promise)
-
+            const tasks: any = [];
+            const toUpsert = data.rules.map(r => ({...r, eventId, updatedAt: new Date()}));
+            tasks.push(upsert(toUpsert));
+            if (deletedIds?.length) {
+                console.log("Deleting rules with ids:", deletedIds);
+                tasks.push(deleteMany(deletedIds));
             }
+            await Promise.all(tasks);
 
-
-            if (toUpdate.length) {
-
-                const updateTx = rulesCollection.update(toUpdate.map(r => r.id),
-                    {
-                        optimistic: true,
-                    }, (drafts) => {
-                        drafts.forEach((draft) => {
-                            const updated = toUpdate.find(r => r.id === draft.id);
-                            if (updated) {
-                                draft.name = updated.name;
-                                draft.errorMessage = updated.errorMessage;
-                                draft.query = updated.query;
-                                draft.enabled = updated.enabled;
-                                draft.updatedAt = new Date();
-                            }
-                        })
-                    });
-                tasks.push(updateTx.isPersisted.promise);
-            }
-
-            if (tasks.length > 0) {
-                await Promise.all(tasks);
-            }
-
+            setDeletedIds([]);
             toast.success("Rules saved successfully", {
                 closeButton: true,
                 duration: 4000,
                 richColors: true,
                 style: {backgroundColor: "#4ade80", color: "white"},
-            })
-
-            const deletedSet = new Set(deletedIds);
-            const toDelete = rules?.filter(r => deletedSet.has(r.id)) ?? [];
-
-            for (const rule of toDelete) {
-                const tx = rulesCollection.delete(rule.id, {
-                    optimistic: true,
-                });
-                await tx.isPersisted.promise;
-            }
-
-
-            clear();
-            setDeletedIds([]);
+            });
 
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "An error occurred", {
@@ -192,10 +147,13 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
 
         const ruleId = form.getValues(`rules.${index}`)?.id;
         if (!ruleId) return;
-        remove(index);
         setDeletedIds((prev) => Array.from(new Set([...(prev || []), ruleId])));
 
-    }, [form, remove, setDeletedIds]);
+        remove(index);
+        clear();
+
+
+    }, [form, remove, setDeletedIds, clear]);
 
     const toggleRuleEnabled = useCallback((index: number) => {
         if (readOnly) return;
@@ -308,7 +266,7 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
     const handleAddRule = useCallback(() => {
 
         const newRule = {
-            id: uuidv7(),
+            id: `new-${uuidv7()}`,
             name: "",
             description: "",
             errorMessage: "",
@@ -324,11 +282,11 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
 
     const handleResetChanges = useCallback(() => {
 
-        clear();
+        // clearForm(eventId);
         form.reset({
-            rules,
+            rules: (rules ?? []).map(r => ({...r})),
         });
-    }, [form, rules, clear]);
+    }, [form, rules]);
 
     useEffect(() => {
         const checkScrollPosition = () => {
@@ -348,18 +306,36 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
     }, []);
 
     useEffect(() => {
-        if (!isReady || !rules?.length) return;
+        if (!eventId || !isReady) return;
 
-        const deletedSet = new Set(deletedIds || []);
-        const existingIds = new Set(form.getValues("rules")?.map(r => r.id) ?? []);
-        rules?.filter((r) => !existingIds.has(r.id) && !deletedSet.has(r.id)).forEach((rule) => {
+        const formRules = form.getValues("rules") ?? [];
+        const existingIds = new Set(formRules?.map(r => r.id));
+        const toInsert = rules?.filter(r =>
+            !r.id.startsWith("new-") && !existingIds.has(r.id) && !deletedIds?.includes(r.id)) ?? [];
 
-            append(rule);
-        });
-    }, [isReady, rules, append, form, deletedIds]);
+        if (!!toInsert?.length) {
+            for (const r of toInsert) {
+                const replacement = formRules?.find(fr => fr.name === r.name && fr.query === r.query);
+                if (!replacement) {
+                    append(r);
+                } else {
+                    update(formRules.findIndex(fr => fr.query === r.query), r);
+                }
+            }
+        }
+
+        for (const r of formRules.filter(r => r?.id?.startsWith("new-"))) {
+            const replacement = rules?.find(rule => rule.name === r.name && rule.query === r.query);
+            if (replacement) {
+                update(formRules.findIndex(fr => fr.query === r.query), replacement);
+            }
+        }
 
 
-    if (!isReady || !eventId || !eventType) {
+    }, [isReady, rules, append, eventId, deletedIds, form, update]);
+
+
+    if (isLoading) {
         return <Loader fullscreen/>
     }
 
@@ -442,7 +418,7 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                     </div>
 
                     <div className="space-y-4">
-                        {fields.map((ruleField, index) => (
+                        {fields?.map((ruleField, index) => (
                             <Card
                                 key={ruleField.id}
 
@@ -547,7 +523,7 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
                                         )}
                                     />
 
-                                    {/* Query */}
+
                                     <FormField
                                         control={form.control}
                                         name={`rules.${index}.query`}

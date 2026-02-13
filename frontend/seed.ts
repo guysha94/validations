@@ -1,8 +1,8 @@
 import "dotenv/config";
-import {eq, sql} from "drizzle-orm";
+import {count, eq, sql} from "drizzle-orm";
 import {validationsDb} from "~/lib/db";
 import {organizations, teams} from "~/lib/db/schema";
-import { uuidv7 } from "uuidv7";
+import {uuidv7} from "uuidv7";
 
 
 const org = {
@@ -42,13 +42,18 @@ const teamsToInsert = [
 async function main() {
 
 
+    const [{countOrgs}] = await validationsDb
+        .select({countOrgs: count()})
+        .from(organizations);
+    if (countOrgs > 0) return;
+
     await validationsDb
         .insert(organizations)
         .values(org)
         .onDuplicateKeyUpdate({
             set: {
 
-                id: sql`id`
+                id: sql.raw("id")
             }
         });
 
@@ -73,7 +78,7 @@ async function main() {
             .values(teamsToActuallyInsert)
             .onDuplicateKeyUpdate({
                 set: {
-                    id: sql`id`
+                    id: sql.raw("id")
                 }
             });
     }

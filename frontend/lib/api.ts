@@ -1,14 +1,8 @@
 "use client";
 
 import {env} from "~/env/client";
-import {
-    EventsInsertSchema,
-    EventsSchema,
-    EventsUpdateSchema,
-    RulesInsertSchema,
-    RulesSchema,
-    rulesUpdateSchema
-} from "~/lib/db/schemas";
+import {EventsInsertSchema, EventsSchema, EventsUpdateSchema, RulesInsertSchema, RulesSchema} from "~/lib/db/schemas";
+import {InsertRule, SelectRule,} from "~/domain";
 
 
 export const api = {
@@ -86,19 +80,19 @@ export const api = {
             const data = await response.json();
             return data as RulesSchema;
         },
-        updateOne: async (id: string, rules: rulesUpdateSchema) => {
+        updateOne: async (id: string, rule: Partial<InsertRule>) => {
             const url = `${env.NEXT_PUBLIC_API_BASE_URL}/rules/${id}`;
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(rules),
+                body: JSON.stringify(rule),
             });
             const data = await response.json();
-            return data as RulesSchema;
+            return data as SelectRule;
         },
-        updateMany: async (updates: Array<{ id: string; changes: rulesUpdateSchema }>) => {
+        updateMany: async (updates: Array<{ id: string; changes: Partial<InsertRule> }>) => {
             const url = `${env.NEXT_PUBLIC_API_BASE_URL}/rules`;
             console.log(JSON.stringify(updates))
             const response = await fetch(url, {
@@ -109,7 +103,7 @@ export const api = {
                 body: JSON.stringify(updates),
             });
             const data = await response.json();
-            return data as RulesSchema[];
+            return data as SelectRule[];
         },
         delete: async (id: string) => {
             const url = `${env.NEXT_PUBLIC_API_BASE_URL}/rules/${id}`;
@@ -118,6 +112,18 @@ export const api = {
             });
             const data = await response.json();
             return data as { success: boolean; id: string };
+        },
+        deleteMany: async (ids: string[]) => {
+            const url = `${env.NEXT_PUBLIC_API_BASE_URL}/rules/bulk-delete`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(ids),
+            });
+            const data = await response.json();
+            return data as { success: boolean; deletedIds: string[] };
         }
     },
     validate: async (formData: { url: string, eventType: string, team: string }) => {

@@ -265,3 +265,26 @@ export const rulePermissions = mysqlTable(
         index("rule_permissions_user_id_idx").on(table.userId),
     ],
 );
+
+// Audit logs for events, rules, and validation requests
+export const auditLogs = mysqlTable(
+    "audit_logs",
+    {
+        id: uuidBinary().default(sql`(uuid_to_bin(uuid()))`).notNull().primaryKey(),
+        createdAt: timestamp("created_at", {mode: 'date'}).notNull().defaultNow(),
+        action: varchar("action", {length: 32}).notNull(),
+        entityType: varchar("entity_type", {length: 32}).notNull(),
+        entityId: varchar("entity_id", {length: 64}),
+        actorId: varchar("actor_id", {length: 36}),
+        actorType: varchar("actor_type", {length: 16}).notNull(),
+        source: varchar("source", {length: 16}).notNull(),
+        payload: json("payload"),
+        metadata: json("metadata"),
+    },
+    (table) => [
+        index("idx_audit_created_at").on(table.createdAt),
+        index("idx_audit_entity").on(table.entityType, table.entityId),
+        index("idx_audit_actor").on(table.actorId),
+        index("idx_audit_action").on(table.action),
+    ],
+);

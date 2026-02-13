@@ -1,5 +1,5 @@
 "use server";
-import {auth} from "~/lib/auth/server";
+import {auth, ServerAuthUser} from "~/lib/auth/server";
 import {headers, headers as getHeaders} from "next/headers";
 import {ORG_SLUG} from "~/lib/constants";
 import {SelectTeam} from "~/domain";
@@ -52,5 +52,15 @@ export async function getActiveTeam(): Promise<SelectTeam> {
 
 export async function getSession() {
     return await auth.api.getSession({headers: await headers()});
+}
+
+export async function getUser(): Promise<ServerAuthUser | undefined> {
+    const session = await getSession();
+    return session?.user;
+}
+
+export async function isAuthenticated(): Promise<boolean> {
+    const session = await getSession();
+    return !!session?.user?.id?.length;
 }
 
