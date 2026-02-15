@@ -6,6 +6,7 @@ import AppProviders from "~/components/providers";
 
 import {ReactNode} from "react";
 import ScrollToTop from "~/components/ScrollToTop";
+import NewEventDialog from "~/components/NewEventDialog";
 
 
 const fontSans = Geist({
@@ -36,6 +37,7 @@ export default async function RootLayout({
         <AppProviders>
             {children}
             <ScrollToTop/>
+            <NewEventDialog/>
         </AppProviders>
         </body>
         </html>

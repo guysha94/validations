@@ -248,10 +248,11 @@ export function NavMainComponent({
 
                     <SidebarMenu>
                         <div className="flex flex-col gap-1">
-                            <SidebarMenuItem className="cursor-pointer" onClick={toggleAddFormOpen}>
+                            <SidebarMenuItem className="cursor-pointer">
                                 <Button
                                     variant="outline"
                                     className="w-full justify-start cursor-pointer"
+                                    onClick={toggleAddFormOpen}
                                 >
                                     <Plus/>
                                     <span>New Event</span>
