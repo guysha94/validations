@@ -1,6 +1,8 @@
+using Backend.Audit;
+
 namespace Backend.Rules.Endpoints;
 
-public class UpdateOne(IRuleRepository repo) : Endpoint<RuleUpdateDto, Rule>
+public class UpdateOne(IRuleRepository repo, IAuditService audit) : Endpoint<RuleUpdateDto, Rule>
 {
     public override void Configure()
     {
@@ -21,9 +23,19 @@ public class UpdateOne(IRuleRepository repo) : Endpoint<RuleUpdateDto, Rule>
 
         var result = await repo.UpdateOneAsync(id, dto, ct);
         await result.Match(
-            r => r.IsNone
-                ? Send.NotFoundAsync(ct)
-                : Send.OkAsync(r.Case as Rule, ct),
+            async r =>
+            {
+                if (r.IsNone)
+                {
+                    await Send.NotFoundAsync(ct);
+                }
+                else
+                {
+                    await audit.LogAsync("update", "rule", id, null, "anonymous", "backend",
+                        new { name = dto.Name }, null, ct);
+                    await Send.OkAsync(r.Case as Rule, ct);
+                }
+            },
             errors => Send.ResultAsync(Results.InternalServerError(errors))
         );
     }

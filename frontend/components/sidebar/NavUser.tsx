@@ -1,6 +1,6 @@
 "use client";
 
-import {EllipsisVertical, LogOut, Settings, UserCircle} from "lucide-react";
+import {EllipsisVertical, LogOut, Logs, Settings, UserCircle} from "lucide-react";
 import {useCallback, useMemo} from "react";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {
@@ -18,6 +18,8 @@ import {useAuth} from "~/hooks/useAuth";
 import {useRouter} from "next/navigation";
 import {authClient} from "~/lib/auth/client";
 import {useQuery} from "@tanstack/react-query";
+import {useUserInfoStore} from "~/store";
+import {useShallow} from "zustand/react/shallow";
 
 
 export default function NavUser() {
@@ -25,6 +27,7 @@ export default function NavUser() {
     const {user, session, logout} = useAuth();
     const {isMobile} = useSidebar();
     const activeTeamId = (session as { activeTeamId?: string } | undefined)?.activeTeamId ?? null;
+    const {activeTeam} = useUserInfoStore(useShallow((state) => state));
 
     const {data: teamsData} = useQuery({
         queryKey: ["user-teams"],
@@ -152,6 +155,10 @@ export default function NavUser() {
                             )}
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator/>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => goTo(`/${activeTeam?.slug}/audits`)}>
+                            <Logs/>
+                            Audit logs
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer" onClick={logout}>
                             <LogOut/>
                             Log out

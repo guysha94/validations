@@ -2,12 +2,10 @@ import type {Metadata} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
 import AppProviders from "~/components/providers";
-
-
-import {ReactNode} from "react";
+import {ReactNode, Suspense} from "react";
 import ScrollToTop from "~/components/ScrollToTop";
-import NewEventDialog from "~/components/NewEventDialog";
-
+import Loader from "~/components/Loader";
+import {NuqsAdapter} from 'nuqs/adapters/next/app'
 
 const fontSans = Geist({
     subsets: ["latin"],
@@ -34,11 +32,14 @@ export default async function RootLayout({
         <body
             className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
         >
-        <AppProviders>
-            {children}
-            <ScrollToTop/>
-            <NewEventDialog/>
-        </AppProviders>
+        <NuqsAdapter>
+            <Suspense fallback={<Loader fullscreen/>}>
+                <AppProviders>
+                    {children}
+                    <ScrollToTop/>
+                </AppProviders>
+            </Suspense>
+        </NuqsAdapter>
         </body>
         </html>
     );

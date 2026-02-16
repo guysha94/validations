@@ -1,8 +1,9 @@
 import "dotenv/config";
 import {count, eq, sql} from "drizzle-orm";
 import {validationsDb} from "~/lib/db";
-import {organizations, teams} from "~/lib/db/schema";
+import {auditLogs, organizations, teams} from "~/lib/db/schema";
 import {uuidv7} from "uuidv7";
+import {AuditLogSelect} from "~/domain";
 
 
 const org = {
@@ -39,8 +40,57 @@ const teamsToInsert = [
 ]
 
 
+const audits: AuditLogSelect[] = [
+    {
+        id: uuidv7(),
+        action: "create",
+        entityType: "event",
+        entityId: "019c47d8-c93a-72ec-8a5c-98ff8873c19c",
+        actorId: "6JkCTBLnsPVxSpe4Pz2rjHAvWzfvPRCB",
+        actorType: "user",
+        source: "frontend",
+        payload: {seeded: true},
+        metadata: null,
+        teamSlug: "dice-server-team",
+        createdAt: new Date(),
+    },
+    {
+        id: uuidv7(),
+        action: "update",
+        entityType: "event",
+        entityId: "019c47d8-c93a-72ec-8a5c-98ff8873c19c",
+        actorId: "6JkCTBLnsPVxSpe4Pz2rjHAvWzfvPRCB",
+        actorType: "user",
+        source: "frontend",
+        payload: {seeded: true},
+        metadata: null,
+        teamSlug: "dice-server-team",
+        createdAt: new Date(),
+    },
+]
+
+for (let i = 0; i < 50; i++) {
+    audits.push({
+        id: uuidv7(),
+        action: "update",
+        entityType: "event",
+        entityId: `019c47d8-c93a-72ec-8a5c-98ff8873c19${i}`,
+        actorId: "6JkCTBLnsPVxSpe4Pz2rjHAvWzfvPRCB",
+        actorType: "user",
+        source: "frontend",
+        payload: {seeded: true, index: i},
+        metadata: null,
+        teamSlug: "dice-server-team",
+        createdAt: new Date(),
+    });
+}
+
 async function main() {
 
+
+    // await validationsDb
+    //     .insert(auditLogs)
+    //     .values(audits);
 
     const [{countOrgs}] = await validationsDb
         .select({countOrgs: count()})

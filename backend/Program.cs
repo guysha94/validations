@@ -5,7 +5,7 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Services.AddOptions<GoogleSheetsOptions>()
     .Bind(builder.Configuration.GetSection(GoogleSheetsOptions.SectionName));
-builder.Services.UpdateDbSchema(builder.Configuration);
+// builder.Services.UpdateDbSchema(builder.Configuration);
 builder.Services
     .AddFastEndpoints()
     .AddResponseCaching();

@@ -41,3 +41,23 @@ export async function setTeamMember(values: InsertTeamMember): Promise<[boolean,
         return [false, error instanceof Error ? error : new Error("Failed to set team member")];
     }
 }
+
+const fetchTeamsSlugsPrepare = validationsDb
+    .select({slug: teams.slug})
+    .from(teams)
+    .prepare();
+
+export async function fetchTeamsSlugs(): Promise<[string[], Error | null]> {
+
+
+    try {
+        const results = await fetchTeamsSlugsPrepare.execute();
+        const slugs = results.map(r => r.slug);
+        return [slugs, null];
+    } catch (error) {
+        console.error("Error fetching team slugs:", error);
+        return [[], error instanceof Error ? error : new Error("Failed to fetch team slugs")];
+    }
+
+
+}

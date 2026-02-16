@@ -1,6 +1,6 @@
 "use client";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle,} from "~/components/ui/card";
-import RulesForm from "~/components/forms/RulesForm";
+import {RulesForm} from "~/components/forms/rules-form";
 import {EventsSchema} from "~/lib/db/schemas";
 
 type Props = {

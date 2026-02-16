@@ -1,6 +1,8 @@
+using Backend.Audit;
+
 namespace Backend.Rules.Endpoints;
 
-public class DeleteOne(IRuleRepository repo) : EndpointWithoutRequest<object>
+public class DeleteOne(IRuleRepository repo, IAuditService audit) : EndpointWithoutRequest<object>
 {
     public override void Configure()
     {
@@ -20,7 +22,15 @@ public class DeleteOne(IRuleRepository repo) : EndpointWithoutRequest<object>
 
         var result = await repo.DeleteOneAsync(id, ct);
         await result.Match(
-            deleted => Send.OkAsync(new { deleted }, ct),
+            async deleted =>
+            {
+                if (deleted)
+                {
+                    await audit.LogAsync("delete", "rule", id, null, "anonymous", "backend",
+                        null, null, ct);
+                }
+                await Send.OkAsync(new { deleted }, ct);
+            },
             errors => Send.ResultAsync(Results.InternalServerError(errors))
         );
     }

@@ -93,7 +93,7 @@ type ErrorTableProps = {
     data: ValidationErrorInfo[]
 }
 
-export default function ErrorTable({data}: ErrorTableProps) {
+export  function ErrorTable({data}: ErrorTableProps) {
     const [globalFilter, setGlobalFilter] = React.useState('');
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(

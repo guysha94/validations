@@ -12,9 +12,9 @@ import dynamic from "next/dynamic";
 import {useQuery} from "@tanstack/react-query";
 import {api} from "~/lib/api";
 import {eq, lower, useLiveQuery} from "@tanstack/react-db";
-import {eventsCollection, rulesCollection} from "~/lib/db/collections";
+import {eventsCollection} from "~/lib/db/collections";
 import {useCallback, useEffect, useMemo} from "react";
-import {SelectEvent} from "~/domain";
+import {EventWithRules} from "~/domain";
 import type {EventsSchema} from "~/lib/db/schemas";
 import {Tab} from "~/store/validations-store";
 import {useRouter} from "next/navigation";
@@ -23,9 +23,10 @@ import {ROOT_ROUTE} from "~/lib/constants";
 
 type Props = {
     slug: string;
+    event: EventWithRules;
 }
 
-function EventTabsComponent({slug}: Props) {
+function EventTabsComponent({slug, event}: Props) {
 
     const router = useRouter();
     const {
@@ -39,10 +40,10 @@ function EventTabsComponent({slug}: Props) {
         (q) => q.from({events: eventsCollection})
             .where(({events}) => eq(lower(events.type), slug.toLowerCase())),
     );
-    const {data: rules = [], isLoading: isLoadingRules} = useLiveQuery(
-        (q) => q.from({rules: rulesCollection})
-            .where(({rules}) => eq(rules.eventId, currentEvent?.id)),
-    );
+    // const {data: rules = [], isLoading: isLoadingRules} = useLiveQuery(
+    //     (q) => q.from({rules: rulesCollection})
+    //         .where(({rules}) => eq(rules.eventId, currentEvent?.id)),
+    // );
 
     const {data: eventBySlug, isLoading: isLoadingSlug, isFetched: slugFetched} = useQuery({
         queryKey: ["event-by-slug", slug],
@@ -50,16 +51,16 @@ function EventTabsComponent({slug}: Props) {
         enabled: !!slug,
     });
 
-    const isLoading = useMemo(
-        () => isLoadingEvents || isLoadingRules || isLoadingSlug,
-        [isLoadingEvents, isLoadingRules, isLoadingSlug],
-    );
-    const event = useMemo(() => {
-        const fromList = events?.find((e) => e.type.toLowerCase() === slug.toLowerCase());
-        if (fromList) return fromList;
-        if (eventBySlug && typeof eventBySlug === "object" && "id" in eventBySlug) return eventBySlug as SelectEvent;
-        return undefined;
-    }, [events, slug, eventBySlug]);
+    // const isLoading = useMemo(
+    //     () => isLoadingEvents || isLoadingRules || isLoadingSlug,
+    //     [isLoadingEvents, isLoadingRules, isLoadingSlug],
+    // );
+    // const event = useMemo(() => {
+    //     const fromList = events?.find((e) => e.type.toLowerCase() === slug.toLowerCase());
+    //     if (fromList) return fromList;
+    //     if (eventBySlug && typeof eventBySlug === "object" && "id" in eventBySlug) return eventBySlug as SelectEvent;
+    //     return undefined;
+    // }, [events, slug, eventBySlug]);
 
     const {data: canEditData} = useQuery({
         queryKey: ["event-can-edit", slug],
@@ -70,13 +71,10 @@ function EventTabsComponent({slug}: Props) {
     const handleChange = useCallback((tab: Tab) => setCurrentTab(tab), [setCurrentTab]);
 
     useEffect(() => {
-        if (isLoading) return;
-        if (events.length === 0) return;
-        if (!event) return;
-        setCurrentEvent(event as SelectEvent);
-    }, [isLoading, events, event, setCurrentEvent]);
+        // if (isLoading) return;
+        setCurrentEvent(event);
+    }, [event, setCurrentEvent]);
 
-    // Only redirect when we've confirmed the event doesn't exist (fetch by slug), not when the list is still loading
     useEffect(() => {
         if (!slug || !slugFetched || isLoadingSlug) return;
         if (eventBySlug === null) {
@@ -86,8 +84,8 @@ function EventTabsComponent({slug}: Props) {
 
     useEffect(() => {
         if (!event?.type) return;
-        setRules(event.type, rules);
-    }, [event, rules, setRules]);
+        setRules(event.type, event.rules);
+    }, [event, setRules]);
 
 
     return (
@@ -123,7 +121,6 @@ function EventTabsComponent({slug}: Props) {
                     )}
                 </TabsContent>
             </Tabs>
-            {isLoading && <Loader fullscreen/>}
         </div>
     )
 }
