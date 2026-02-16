@@ -8,9 +8,6 @@ import {authClient} from "~/lib/auth/client";
 import {ROOT_ROUTE} from "~/lib/constants";
 
 const customRoles = [
-    {role: "owner", label: "Owner"},
-    {role: "admin", label: "Admin"},
-    {role: "member", label: "Member"},
     {role: "viewer", label: "Viewer"},
 ]
 
@@ -39,8 +36,6 @@ export default function AuthProviders({children}: { children: ReactNode }) {
             teams={{
                 enabled: true,
                 customRoles,
-
-
             }}
             Link={Link}
         >
