@@ -22,6 +22,20 @@
       "when": 1770908342603,
       "tag": "0002_bright_skreet",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1771154061221,
+      "tag": "0003_tan_sharon_carter",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1771154204234,
+      "tag": "0004_complex_echo",
+      "breakpoints": true
     }
   ]
 }

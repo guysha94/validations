@@ -2,19 +2,15 @@
 
 import {useFieldArray, useForm} from "react-hook-form";
 import {ChangeEvent, useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {ChevronDown, ChevronUp, Download, Plus, Trash2, Upload} from "lucide-react";
+import {ChevronDown, ChevronUp, Download, Plus, Upload} from "lucide-react";
 import {Button} from "~/components/ui/button";
-import {Input} from "~/components/ui/input";
-import {Checkbox} from "@/components/ui/checkbox"
 import {Label} from "@/components/ui/label"
-import {Card, CardContent, CardHeader, CardTitle,} from "~/components/ui/card";
-import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "~/components/ui/form";
+import {Form,} from "~/components/ui/form";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu";
 import {Spinner} from "~/components/ui/spinner";
-import SQLEditor from "~/components/SQLEditor";
 import * as z from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
-import {RulesSchema, rulesSchema,} from "~/lib/db/schemas";
+import {rulesSchema,} from "~/lib/db/schemas";
 import {toast} from "sonner"
 import Papa from "papaparse";
 import slugify from "slugify";
@@ -24,6 +20,7 @@ import {uuidv7} from "uuidv7";
 import {downloadBlob} from "~/lib/utils";
 import {useSessionStorage} from "@reactuses/core";
 import useFormPersist from "react-hook-form-persist";
+import RulesField from "~/components/forms/rules-form/RulesField";
 
 type RulesFormProps = {
     eventType: string;
@@ -52,34 +49,8 @@ const scrollToTop = () => {
     });
 };
 
-function getDisplayRules(dbRules: RulesSchema[], draftCreateRules: Record<string, RulesSchema> | undefined, draftUpdateRules: Record<string, RulesSchema> | undefined, deletedIds: Set<string> | undefined): RulesSchema[] {
 
-    const merged = {};
-
-    for (const rule of dbRules) {
-        if (deletedIds?.has(rule.id)) continue;
-        if (draftUpdateRules && draftUpdateRules[rule.id]) {
-            merged[rule.id] = {
-                ...rule,
-                ...draftUpdateRules[rule.id],
-            }
-        } else {
-            merged[rule.id] = rule;
-        }
-    }
-
-    if (!!draftCreateRules) {
-        const createdThatNotInDeleted = Object.entries(draftCreateRules).filter(([id]) => !deletedIds?.has(id));
-        createdThatNotInDeleted?.forEach(([id, rule]) => {
-            merged[id] = rule;
-        });
-    }
-
-    return Object.values(merged);
-}
-
-
-export default function RulesForm({eventType, eventId, readOnly = false}: RulesFormProps) {
+export function RulesForm({eventType, eventId, readOnly = false}: RulesFormProps) {
     const importFileRef = useRef<HTMLInputElement>(null);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,7 +59,6 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
     const [isAtTop, setIsAtTop] = useState(true);
     const [deletedIds, setDeletedIds] = useSessionStorage<string[]>(`rules-form-deleted-${eventId}`, []);
     const {rules, isReady, upsert, deleteMany} = useRules();
-    // const {activeFormRules, clearForm, removeRule, addRule} = useFormStore(state => state);
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         mode: "onChange",
@@ -282,7 +252,6 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
 
     const handleResetChanges = useCallback(() => {
 
-        // clearForm(eventId);
         form.reset({
             rules: (rules ?? []).map(r => ({...r})),
         });
@@ -419,134 +388,16 @@ export default function RulesForm({eventType, eventId, readOnly = false}: RulesF
 
                     <div className="space-y-4">
                         {fields?.map((ruleField, index) => (
-                            <Card
-                                key={ruleField.id}
+                            <RulesField
+                                index={index}
+                                form={form}
+                                fields={fields}
+                                onRemove={onRemove}
+                                ruleField={ruleField}
+                                readOnly={readOnly}
+                                toggleRuleEnabled={toggleRuleEnabled}
+                                key={ruleField.id}/>
 
-                                className="has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950"
-                            >
-                                <CardHeader
-                                    aria-checked={form.getValues(`rules.${index}.enabled`) ? "true" : "false"}
-                                    tabIndex={readOnly ? undefined : 0}
-                                    role="checkbox"
-                                    className={`pb-4 ${readOnly ? "" : "cursor-pointer"}`}>
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-lg">
-                                            Rule {index + 1}
-                                        </CardTitle>
-                                        <div className="flex">
-                                            <FormField
-                                                control={form.control}
-                                                name={`rules.${index}.enabled`}
-                                                render={({field}) => (
-                                                    <FormItem
-                                                        className="flex flex-row-reverse items-center space-x-1 space-y-0 mr-4">
-                                                        <FormLabel
-                                                            htmlFor={`rules.${index}.enabled`}
-                                                            className="mb-0"
-                                                        >
-                                                            Enabled
-                                                        </FormLabel>
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                id={`rules.${index}.enabled`}
-                                                                defaultChecked
-                                                                checked={(typeof field?.value === 'undefined' ? true : field.value) as boolean}
-                                                                onBlur={() => field.onBlur()}
-                                                                onClick={() => toggleRuleEnabled(index)}
-                                                                disabled={readOnly}
-                                                                className="cursor-pointer data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage/>
-                                                    </FormItem>
-                                                )}
-                                            />
-
-                                            {!readOnly && fields.length > 1 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => onRemove(index)}
-                                                    className="text-destructive hover:text-destructive cursor-pointer"
-                                                >
-                                                    <Trash2 className="h-4 w-4"/>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <FormField
-                                        control={form.control}
-                                        name={`rules.${index}.name`}
-                                        rules={{required: "Rule name is required"}}
-                                        render={({field}) => (
-                                            <FormItem>
-                                                <FormLabel>
-                                                    Name <span className="text-destructive">*</span>
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        className="bg-background"
-                                                        placeholder="e.g., email_format_check"
-                                                        readOnly={readOnly}
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage/>
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    {/* Error Message */}
-                                    <FormField
-                                        control={form.control}
-                                        name={`rules.${index}.errorMessage`}
-                                        rules={{required: "Error message is required"}}
-                                        render={({field}) => (
-                                            <FormItem>
-                                                <FormLabel>
-                                                    Error Message{" "}
-                                                    <span className="text-destructive">*</span>
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        className="bg-background"
-                                                        placeholder="e.g., Invalid email format"
-                                                        readOnly={readOnly}
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage/>
-                                            </FormItem>
-                                        )}
-                                    />
-
-
-                                    <FormField
-                                        control={form.control}
-                                        name={`rules.${index}.query`}
-                                        rules={{required: "Query is required"}}
-                                        render={({field}) => (
-                                            <FormItem>
-                                                <FormLabel>
-                                                    Query <span className="text-destructive">*</span>
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <SQLEditor
-                                                        value={field.value}
-                                                        onChange={field.onChange}
-                                                        placeholder="e.g., email LIKE '%@%.%'"
-                                                        readOnly={readOnly}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage/>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </CardContent>
-                            </Card>
                         ))}
                     </div>
                 </div>

@@ -271,6 +271,7 @@ export const auditLogs = mysqlTable(
     "audit_logs",
     {
         id: uuidBinary().default(sql`(uuid_to_bin(uuid()))`).notNull().primaryKey(),
+        teamSlug: varchar("team_slug", {length: 255}).notNull(),
         createdAt: timestamp("created_at", {mode: 'date'}).notNull().defaultNow(),
         action: varchar("action", {length: 32}).notNull(),
         entityType: varchar("entity_type", {length: 32}).notNull(),
@@ -286,5 +287,6 @@ export const auditLogs = mysqlTable(
         index("idx_audit_entity").on(table.entityType, table.entityId),
         index("idx_audit_actor").on(table.actorId),
         index("idx_audit_action").on(table.action),
+        index("idx_audit_team_slug").on(table.teamSlug),
     ],
 );

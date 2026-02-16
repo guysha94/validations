@@ -2,7 +2,7 @@
 import {useMemo} from "react";
 
 import TestForm from "~/components/forms/TestForm";
-import ErrorTable from "~/components/ErrorTable";
+import {ErrorTable} from "~/components/tables";
 import {useValidationsStore} from "~/store";
 import {useShallow} from "zustand/react/shallow";
 

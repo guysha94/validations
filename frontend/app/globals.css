@@ -132,6 +132,11 @@ pre code {
     margin: 0 5px 0 5px;
 }
 
-button[data-slot="dialog-close"] {
-    cursor: pointer;
+button {
+    cursor: pointer !important;
 }
+
+span[data-slot="select-value"]{
+    cursor: pointer !important;
+}
+
