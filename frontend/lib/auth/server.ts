@@ -12,8 +12,10 @@ import {nextCookies} from "better-auth/next-js";
 import nodemailer from "nodemailer";
 import {render} from "@react-email/render";
 import EmailTemplate from "~/components/EmailTemplate";
-import {ALLOWED_ROLES} from "~/lib/constants";
+import {ALLOWED_EMAIL_DOMAIN, ALLOWED_ROLES} from "~/lib/constants";
 import {ac, admin, member, owner, viewer} from "./permissions"
+import {createAuthMiddleware} from "better-auth/api";
+import {fetchUserTeams} from "~/lib/db/crud/teams";
 
 
 const SUPERPLAY_ORG_SLUG = "superplay";
@@ -197,52 +199,52 @@ export const auth = betterAuth({
         adminPlugin(),
         nextCookies(),
     ],
-    // hooks: {
-    //     after: createAuthMiddleware(async (ctx) => {
-    //         if (!ctx.path?.startsWith("/callback/")) return;
-    //         const newSession = ctx.context.newSession as
-    //             | {
-    //             session: { token: string };
-    //             user: { id?: string; email?: string | null };
-    //         }
-    //             | undefined;
-    //         if (!newSession?.user?.email) return;
-    //         // const email = newSession.user.email.toLowerCase();
-    //         // if (!email.endsWith(ALLOWED_EMAIL_DOMAIN)) {
-    //         //     await ctx.context.internalAdapter.deleteSession(
-    //         //         newSession.session.token
-    //         //     );
-    //         //     const cookieName =
-    //         //         ctx.context.authCookies.sessionToken.name;
-    //         //     const attrs =
-    //         //         ctx.context.authCookies.sessionToken.attributes ?? {};
-    //         //     ctx.setCookie(cookieName, "", {...attrs, maxAge: 0});
-    //         //     throw ctx.redirect(
-    //         //         "/sign-in?error=unauthorized_domain"
-    //         //     );
-    //         // }
-    //
-    //         const userId = newSession.user.id;
-    //         if (userId) {
-    //             try {
-    //                 await setupFirstUserAsAdmin(userId);
-    //
-    //                 const [userTeams, error] = await fetchUserTeams(userId);
-    //                 if (error) {
-    //                     console.error("Error fetching user teams during session setup:", error);
-    //                 } else if (userTeams.length > 0) {
-    //                     const activeTeamId = userTeams[0].id;
-    //                     await ctx.context.internalAdapter.updateSession(newSession.session.token, {
-    //                         activeTeamId,
-    //                     });
-    //                 }
-    //
-    //             } catch (e) {
-    //                 console.error("First-user admin setup failed:", e);
-    //             }
-    //         }
-    //     }),
-    // },
+    hooks: {
+        after: createAuthMiddleware(async (ctx) => {
+            if (!ctx.path?.startsWith("/callback/")) return;
+            const newSession = ctx.context.newSession as
+                | {
+                session: { token: string };
+                user: { id?: string; email?: string | null };
+            }
+                | undefined;
+            if (!newSession?.user?.email) return;
+            const email = newSession.user.email.toLowerCase();
+            if (!email.endsWith(ALLOWED_EMAIL_DOMAIN)) {
+                await ctx.context.internalAdapter.deleteSession(
+                    newSession.session.token
+                );
+                const cookieName =
+                    ctx.context.authCookies.sessionToken.name;
+                const attrs =
+                    ctx.context.authCookies.sessionToken.attributes ?? {};
+                ctx.setCookie(cookieName, "", {...attrs, maxAge: 0});
+                throw ctx.redirect(
+                    "/sign-in?error=unauthorized_domain"
+                );
+            }
+
+            const userId = newSession.user.id;
+            if (userId) {
+                try {
+                    await setupFirstUserAsAdmin(userId);
+
+                    const [userTeams, error] = await fetchUserTeams(userId);
+                    if (error) {
+                        console.error("Error fetching user teams during session setup:", error);
+                    } else if (userTeams.length > 0) {
+                        const activeTeamId = userTeams[0].id;
+                        await ctx.context.internalAdapter.updateSession(newSession.session.token, {
+                            activeTeamId,
+                        });
+                    }
+
+                } catch (e) {
+                    console.error("First-user admin setup failed:", e);
+                }
+            }
+        }),
+    },
 });
 
 
