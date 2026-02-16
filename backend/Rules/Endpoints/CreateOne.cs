@@ -1,6 +1,8 @@
+using Backend.Audit;
+
 namespace Backend.Rules.Endpoints;
 
-public class CreateOne(IRuleRepository repo) : Endpoint<RuleCreateDto, Rule?>
+public class CreateOne(IRuleRepository repo, IAuditService audit) : Endpoint<RuleCreateDto, Rule?>
 {
     public override void Configure()
     {
@@ -14,9 +16,21 @@ public class CreateOne(IRuleRepository repo) : Endpoint<RuleCreateDto, Rule?>
     {
         var result = await repo.CreateOneAsync(dto.ToRule(), ct);
         await result.Match(
-            r => r.IsNone
-                ? Send.ResultAsync(Results.Problem("Failed to create rule"))
-                : Send.CreatedAtAsync<GetOne>(new { id = (r.Case as Rule).Id }, cancellation: ct),
+            async r =>
+            {
+                if (r.IsNone)
+                {
+                    await Send.ResultAsync(Results.Problem("Failed to create rule"));
+                }
+                else
+                {
+                    var rule = r.Case as Rule;
+                    var ruleId = rule!.Id.ToString();
+                    await audit.LogAsync("create", "rule", ruleId, null, "anonymous", "backend",
+                        new { eventId = dto.EventId, name = dto.Name }, null, ct);
+                    await Send.CreatedAtAsync<GetOne>(new { id = rule.Id }, cancellation: ct);
+                }
+            },
             errors => Send.ResultAsync(Results.InternalServerError(errors))
         );
     }

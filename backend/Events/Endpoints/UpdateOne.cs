@@ -1,6 +1,8 @@
+using Backend.Audit;
+
 namespace Backend.Events.Endpoints;
 
-public class UpdateOne(IEventRepository repo) : Endpoint<EventUpdateDto, Event?>
+public class UpdateOne(IEventRepository repo, IAuditService audit) : Endpoint<EventUpdateDto, Event?>
 {
     public override void Configure()
     {
@@ -16,9 +18,19 @@ public class UpdateOne(IEventRepository repo) : Endpoint<EventUpdateDto, Event?>
         var dbEvent = dto.ToEvent(id);
         var result = await repo.UpdateOneAsync(id, dbEvent, ct);
         await result.Match(
-            e => e.IsNone
-                ? Send.NotFoundAsync(ct)
-                : Send.OkAsync(e.Case as Event, ct),
+            async e =>
+            {
+                if (e.IsNone)
+                {
+                    await Send.NotFoundAsync(ct);
+                }
+                else
+                {
+                    await audit.LogAsync("update", "event", id.ToString(), null, "anonymous", "backend",
+                        new { type = dto.Type, label = dto.Label }, null, ct);
+                    await Send.OkAsync(e.Case as Event, ct);
+                }
+            },
             errors => Send.ResultAsync(Results.InternalServerError(errors))
         );
     }
