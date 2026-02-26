@@ -1,1 +1,0 @@
-CREATE INDEX `idx_audit_team_slug` ON `audit_logs` (`team_slug`);

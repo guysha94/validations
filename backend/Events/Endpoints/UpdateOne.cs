@@ -13,7 +13,7 @@ public class UpdateOne(IEventRepository repo, IAuditService audit) : Endpoint<Ev
 
     public override async Task HandleAsync(EventUpdateDto dto, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
+        var id = Route<string>("id");
 
         var dbEvent = dto.ToEvent(id);
         var result = await repo.UpdateOneAsync(id, dbEvent, ct);

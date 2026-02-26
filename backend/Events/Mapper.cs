@@ -10,7 +10,7 @@ public static class Mapper
             Icon = dto.Icon ?? string.Empty,
         };
 
-    public static Event ToEvent(this EventUpdateDto dto, Guid id) =>
+    public static Event ToEvent(this EventUpdateDto dto, string id) =>
         new()
         {
             Id = id,

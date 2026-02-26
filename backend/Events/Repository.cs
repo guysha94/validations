@@ -1,13 +1,14 @@
 namespace Backend.Events;
 
 public sealed class EventRepository(
-    ILogger<Repository<Event, Guid, EventCreateDto, EventUpdateDto>> logger,
+    ILogger<Repository<Event, string, EventCreateDto, EventUpdateDto>> logger,
     IDbConnectionFactory connectionFactory)
-    : Repository<Event, Guid, EventCreateDto, EventUpdateDto>(logger, connectionFactory), IEventRepository
+    : Repository<Event, string, EventCreateDto, EventUpdateDto>(logger, connectionFactory), IEventRepository
 {
-    public async ValueTask<Event> GetByEventTypeAsync(string eventType, CancellationToken ct = default)
+    public async ValueTask<Event?> GetByEventTypeAsync(string eventType, CancellationToken ct = default)
     {
-        const string sql = "SELECT id as Id, type as Type, label as Label, icon as Icon, event_schema as `Schema`, updated_at as UpdatedAt FROM events WHERE type = @eventType;";
+        const string sql =
+            "SELECT id as Id, type as Type, label as Label, icon as Icon, event_schema as `Schema`, updated_at as UpdatedAt FROM events WHERE type = @eventType;";
 
 
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -17,15 +18,15 @@ public sealed class EventRepository(
         return result ?? throw new KeyNotFoundException($"Event with EventType '{eventType}' not found.");
     }
 
-    public async ValueTask<Event?> UpdateSchemaAsync(Guid id, IDictionary<string, ICollection<EventColumn>> schema,
+    public async ValueTask<Event?> UpdateSchemaAsync(Guid id, IDictionary<string, ICollection<string>> schema,
         CancellationToken ct = default)
     {
         const string sql = """
                            UPDATE events
                            SET schema = @schema,
                                updated_at = @updatedAt
-                           WHERE id = @id
-                           RETURNING id, type, label, icon, schema, updated_at;
+                           WHERE id = @id;
+                            SELECT id as Id, type as Type, label as Label, icon as Icon, event_schema as `Schema`, updated_at as UpdatedAt;
                            """;
 
         var parameters = new

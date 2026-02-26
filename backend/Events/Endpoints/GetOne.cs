@@ -13,8 +13,8 @@ public class GetOne(IEventRepository repo)
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var id = Route<Guid>("id");
-        if (id.Version != 7)
+        var id = Route<string>("id");
+        if (string.IsNullOrWhiteSpace(id))
         {
             await Send.ErrorsAsync(StatusCodes.Status400BadRequest, ct);
             return;

@@ -26,12 +26,11 @@ RUN dotnet build "./validations.csproj" -c $BUILD_CONFIGURATION -o /app/build
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./validations.csproj" -c $BUILD_CONFIGURATION \
-#    -r linux-musl-arm64 --self-contained false \
     -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
-#USER root
+
 WORKDIR /app
 COPY --from=publish /app/publish .
-RUN #chmod +x /app/validations
-ENTRYPOINT ["./validations"]
+
+ENTRYPOINT ["dotnet", "validations.dll"]

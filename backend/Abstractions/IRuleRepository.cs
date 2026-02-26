@@ -1,6 +1,6 @@
 namespace Backend.Abstractions;
 
-public interface IRuleRepository : IRepository<Rule, string, RuleCreateDto, RuleUpdateDto>
+public interface IEventRuleRepository : IRepository<EventRule, string, EventRuleCreateDto, EventRuleUpdateDto>
 {
-    ValueTask<ICollection<Rule>> GetByEventTypeAsync(string eventType, string team, CancellationToken ct = default);
+    ValueTask<Fin<ICollection<EventRule>>> GetByEventTypeAsync(string eventType, string team, CancellationToken ct = default);
 }

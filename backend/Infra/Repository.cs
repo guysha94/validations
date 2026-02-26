@@ -39,7 +39,8 @@ public class Repository<TEntity, TKey, TEntityCreate, TEntityUpdate> :
         var createProperties = createType.GetProperties().Select(p => p.Name).ToHashSet();
         var updateProperties = updateType.GetProperties().Select(p => p.Name).ToHashSet();
         _columns = entityType.GetProperties()
-            .Where(p => !p.GetCustomAttributes(typeof(IgnoreAttribute), true).Any())
+            .Where(p => !p.GetCustomAttributes(typeof(IgnoreAttribute), true).Any()
+                       && !p.GetCustomAttributes(typeof(NotMappedAttribute), true).Any())
             .ToDictionary(
                 x => x.Name,
                 x => new ColumnInfo(x.Name, x.GetCustomAttributes(typeof(ColumnAttribute), true)
@@ -91,18 +92,11 @@ public class Repository<TEntity, TKey, TEntityCreate, TEntityUpdate> :
 
     public async ValueTask<Fin<Option<TEntity>>> CreateOneAsync(TEntityCreate entity, CancellationToken ct = default)
     {
-        try
-        {
-            _logger.LogInformation(_insertSql);
-            await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
-            var result = await connection.QueryFirstOrDefaultAsync<TEntity>(_insertSql, entity);
-            return Fin.Succ(Optional(result));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating entity in table {TableName}", _tableName);
-            return Fin.Fail<Option<TEntity>>(ex);
-        }
+        // INSERT does not return rows; use CreateOneAsync(TEntity entity) overload with a mapped entity
+        // that includes Id (e.g. dto.ToEntity() with Id from Guid.CreateVersion7()).
+        return Fin.Fail<Option<TEntity>>(
+            new NotImplementedException(
+                "CreateOneAsync(TEntityCreate) does not return the created entity. Use CreateOneAsync(TEntity) with a mapped entity that includes Id."));
     }
 
     public async ValueTask<Fin<Option<TEntity>>> CreateOneAsync(TEntity entity, CancellationToken ct = default)
@@ -143,8 +137,6 @@ public class Repository<TEntity, TKey, TEntityCreate, TEntityUpdate> :
         parameters.Add("Id", id);
         try
         {
-            _logger.LogInformation(sql);
-            _logger.LogInformation("Parameters: {@Parameters}", entity);
             await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
             var result = await connection.QueryFirstAsync<TEntity>(sql, parameters);
             return Fin.Succ(Optional(result));
@@ -213,8 +205,8 @@ public class Repository<TEntity, TKey, TEntityCreate, TEntityUpdate> :
     public async ValueTask<Fin<int>> CreateManyAsync(IEnumerable<TEntityCreate> entities,
         CancellationToken ct = default)
     {
-        var columns = string.Join(", ", _columns);
-        var parameters = string.Join(", ", _columns.Select(name => "@" + name));
+        var columns = _insertColumnsClause;
+        var parameters = _insertParametersClause;
         var sql = $"INSERT INTO {_tableName} ({columns}) VALUES ({parameters})";
         try
         {
