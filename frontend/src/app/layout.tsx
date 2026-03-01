@@ -7,6 +7,7 @@ import {ClientProviders} from "~/components/providers";
 import {AppSidebar} from "~/components/sidebar";
 import SiteHeader from "~/components/sidebar/SiteHeader";
 import {SidebarInset, SidebarProvider} from "~/components/ui/sidebar";
+import NewEventDialog from "~/components/NewEventDialog";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -37,12 +38,11 @@ export default async function RootLayout({children}: PropsWithChildren) {
         <Suspense fallback={<div className="min-h-screen bg-background"/>}>
             <ClientProviders>
                 <SidebarProvider style={style} defaultOpen={false}>
-                    <Suspense fallback={null}>
-                        <AppSidebar variant="inset"/>
-                    </Suspense>
+                    <AppSidebar variant="inset"/>
                     <SidebarInset>
                         <SiteHeader/>
                         {children}
+                        <NewEventDialog />
                     </SidebarInset>
                 </SidebarProvider>
             </ClientProviders>

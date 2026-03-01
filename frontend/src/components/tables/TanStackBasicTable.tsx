@@ -17,7 +17,7 @@ import {
   useQueryState,
   useQueryStates,
 } from "nuqs";
-import { useMemo } from "react";
+import {ChangeEvent, InputEventHandler, InputEvent, useCallback, useMemo, useEffect} from "react";
 import Loader from "~/components/Loader";
 import { Button } from "~/components/ui/button";
 import {
@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import TanStackBasicTableTableComponent from "./TanStackBasicTableTableComponent";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
 
 type Props<T> = {
   data?: T[];
@@ -62,7 +63,9 @@ export default function TanStackBasicTable<T>({
   totalRows = 0,
   isLoading = false,
 }: Props<T>) {
-  // const router = useRouter();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams()
   // const searchRef = useRef<HTMLInputElement>(null);
   const [pagination, setPagination] = useQueryStates(
     {
@@ -116,6 +119,19 @@ export default function TanStackBasicTable<T>({
     },
   });
 
+  const handleSearchInput:InputEventHandler = useCallback( async (e: InputEvent<HTMLInputElement>) => {
+    await setSearch((e.target as HTMLInputElement).value);
+  }, [setSearch]);
+
+  console.log("search: ", search);
+  console.log("pagination: ", pagination);
+  console.log("columnFilters: ", columnFilters);
+  console.log("sorting: ", sorting);
+  console.log("data: ", data);
+  console.log("columns: ", columns);
+  console.log("totalRows: ", totalRows);
+  console.log("pageCount: ", pageCount);
+  console.log("isLoading: ", isLoading);
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
@@ -123,7 +139,8 @@ export default function TanStackBasicTable<T>({
           // ref={searchRef}
           placeholder="Search"
           value={search}
-          onChange={async (e) => await setSearch(e.target.value)}
+          onInput={handleSearchInput}
+
           className="max-w-sm"
         />
         <DropdownMenu>

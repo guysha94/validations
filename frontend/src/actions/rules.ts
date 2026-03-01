@@ -5,8 +5,114 @@ import { uuidv7 } from "uuidv7";
 import db from "~/db";
 import { eventRules, rewardRules } from "~/db/schema";
 import type { EventRule, RewardRule } from "~/domain";
+import { cacheLife, cacheTag, revalidateTag } from "next/cache";
 
 type AsyncResult<T> = Promise<{ data?: T; error?: Error }>;
+
+async function resolveEventId(eventIdOrType: string): Promise<string | null> {
+  const { resolveEventId: resolve } = await import("~/actions/events");
+  return resolve(eventIdOrType);
+}
+
+export async function getEventRulesByEventId(
+  eventIdOrType: string,
+): AsyncResult<EventRule[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("events");
+  try {
+    const eventId = await resolveEventId(eventIdOrType);
+    if (!eventId) return { error: new Error("Event not found") };
+    const rows = await db
+      .select()
+      .from(eventRules)
+      .where(eq(eventRules.eventId, eventId));
+    return { data: rows as EventRule[] };
+  } catch (err) {
+    const error =
+      err instanceof Error
+        ? err
+        : new Error("Failed to fetch event rules.");
+    return { error };
+  }
+}
+
+export async function getEventRuleById(
+  eventIdOrType: string,
+  ruleId: string,
+): AsyncResult<EventRule> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("events");
+  try {
+    const eventId = await resolveEventId(eventIdOrType);
+    if (!eventId) return { error: new Error("Event not found") };
+    const [row] = await db
+      .select()
+      .from(eventRules)
+      .where(eq(eventRules.id, ruleId));
+    if (!row || row.eventId !== eventId) {
+      return { error: new Error("Event rule not found") };
+    }
+    return { data: row as EventRule };
+  } catch (err) {
+    const error =
+      err instanceof Error
+        ? err
+        : new Error("Failed to fetch event rule.");
+    return { error };
+  }
+}
+
+export async function getRewardRulesByEventId(
+  eventIdOrType: string,
+): AsyncResult<RewardRule[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("events");
+  try {
+    const eventId = await resolveEventId(eventIdOrType);
+    if (!eventId) return { error: new Error("Event not found") };
+    const rows = await db
+      .select()
+      .from(rewardRules)
+      .where(eq(rewardRules.eventId, eventId));
+    return { data: rows as RewardRule[] };
+  } catch (err) {
+    const error =
+      err instanceof Error
+        ? err
+        : new Error("Failed to fetch reward rules.");
+    return { error };
+  }
+}
+
+export async function getRewardRuleById(
+  eventIdOrType: string,
+  ruleId: string,
+): AsyncResult<RewardRule> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("events");
+  try {
+    const eventId = await resolveEventId(eventIdOrType);
+    if (!eventId) return { error: new Error("Event not found") };
+    const [row] = await db
+      .select()
+      .from(rewardRules)
+      .where(eq(rewardRules.id, ruleId));
+    if (!row || row.eventId !== eventId) {
+      return { error: new Error("Reward rule not found") };
+    }
+    return { data: row as RewardRule };
+  } catch (err) {
+    const error =
+      err instanceof Error
+        ? err
+        : new Error("Failed to fetch reward rule.");
+    return { error };
+  }
+}
 
 export async function createEventRule(
   input: Omit<EventRule, "id" | "createdAt" | "updatedAt">,
@@ -32,6 +138,8 @@ export async function createEventRule(
     const error =
       err instanceof Error ? err : new Error("Failed to create event rule.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -56,6 +164,8 @@ export async function updateEventRule(
     const error =
       err instanceof Error ? err : new Error("Failed to update event rule.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -67,6 +177,8 @@ export async function deleteEventRule(id: string): AsyncResult<void> {
     const error =
       err instanceof Error ? err : new Error("Failed to delete event rule.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -94,6 +206,8 @@ export async function createRewardRule(
     const error =
       err instanceof Error ? err : new Error("Failed to create reward rule.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -118,6 +232,8 @@ export async function updateRewardRule(
     const error =
       err instanceof Error ? err : new Error("Failed to update reward rule.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -129,6 +245,8 @@ export async function deleteRewardRule(id: string): AsyncResult<void> {
     const error =
       err instanceof Error ? err : new Error("Failed to delete reward rule.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -163,6 +281,8 @@ export async function upsertEventRules(
     const error =
       err instanceof Error ? err : new Error("Failed to upsert event rules.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -176,6 +296,8 @@ export async function deleteManyEventRules(ids: string[]): AsyncResult<void> {
     const error =
       err instanceof Error ? err : new Error("Failed to delete event rules.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -207,6 +329,8 @@ export async function upsertRewardRules(
     const error =
       err instanceof Error ? err : new Error("Failed to upsert reward rules.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }
 
@@ -220,5 +344,7 @@ export async function deleteManyRewardRules(ids: string[]): AsyncResult<void> {
     const error =
       err instanceof Error ? err : new Error("Failed to delete reward rules.");
     return { error };
+  } finally {
+    revalidateTag("events", "minutes");
   }
 }

@@ -21,9 +21,7 @@ export default async function Layout({
 
   return (
     <AuthContextProvider>
-      <EventsContextProvider teamSlug={teamSlug}>
         {children}
-      </EventsContextProvider>
     </AuthContextProvider>
   );
 }

@@ -1,4 +1,5 @@
 import type { SortingState } from "@tanstack/react-table";
+import type {AuditLog} from "~/domain/db-types";
 
 export type Constructor<T = any> = new (...args: any[]) => T;
 
@@ -54,3 +55,8 @@ export type PaginationAndSorting = {
   sorting: SortingState;
   q: string;
 };
+
+export type PaginatedResponse<T> = {
+  total: number;
+  rows: T[];
+}

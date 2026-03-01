@@ -20,6 +20,7 @@ export default function TanStackBasicTableTableComponent<TData>({
   table,
 }: Props<TData>) {
   const sortToggler = (header: Header<TData, unknown>) => {
+    console.log("Sorting toggled for column:", header.column);
     if (header.column.getCanSort()) {
       header.column.toggleSorting(undefined, true);
     }

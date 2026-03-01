@@ -1,12 +1,20 @@
 "use client";
 
-import type { EventRule, EventWithRules, RewardRule } from "~/domain";
+import type {
+  Event,
+  EventRule,
+  EventWithRules,
+  RewardRule,
+} from "~/domain";
 import env from "~/lib/env";
+
+const base = () => env.NEXT_PUBLIC_API_BASE_URL;
 
 export const api = {
   events: {
     getAll: async (teamSlug: string) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/teams/${teamSlug}/events`;
+      console.log(`Fetching events for team: ${teamSlug}`);
+      const url = `${base()}/api/teams/${teamSlug}/events`;
       const response = await fetch(url);
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -17,56 +25,78 @@ export const api = {
       const data = await response.json();
       return data as EventWithRules[];
     },
-    getBySlug: async (slug: string) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/events/${encodeURIComponent(slug)}`;
+    create: async (teamSlug: string, event: Omit<Event, "id" | "teamId"> & { teamId?: string }) => {
+      const url = `${base()}/api/teams/${teamSlug}/events`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error((err as { error?: string })?.error ?? response.statusText);
+      }
+      const data = await response.json();
+      return data as EventWithRules;
+    },
+    getById: async (eventId: string, options?: { withRules?: boolean; withTeam?: boolean }) => {
+      const params = new URLSearchParams();
+      if (options?.withRules) params.set("withRules", "true");
+      if (options?.withTeam) params.set("withTeam", "true");
+      const qs = params.toString();
+      const url = `${base()}/api/events/${encodeURIComponent(eventId)}${qs ? `?${qs}` : ""}`;
       const response = await fetch(url);
       if (!response.ok) return null;
       const data = await response.json();
       return (data ?? null) as EventWithRules | null;
     },
-    create: async (event: EventWithRules) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/events`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(event),
-      });
-      const data = await response.json();
-      return data as EventWithRules;
-    },
-    update: async (id: string, event: EventWithRules) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/events/${id}`;
+    getBySlug: async (slug: string) => api.events.getById(slug, { withRules: true }),
+    update: async (eventId: string, event: Partial<Event>) => {
+      const url = `${base()}/api/events/${encodeURIComponent(eventId)}`;
       const response = await fetch(url, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(event),
       });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error((err as { error?: string })?.error ?? response.statusText);
+      }
       const data = await response.json();
       return data as EventWithRules;
     },
-    delete: async (id: string) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/events/${id}`;
+    patch: async (eventId: string, event: Partial<Event>) => {
+      const url = `${base()}/api/events/${encodeURIComponent(eventId)}`;
       const response = await fetch(url, {
-        method: "DELETE",
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
       });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error((err as { error?: string })?.error ?? response.statusText);
+      }
       const data = await response.json();
-      return data as { success: boolean; id: string };
+      return data as EventWithRules;
     },
-    canEdit: async (slug: string) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/events/${slug}/can-edit`;
-      const response = await fetch(url);
-      const data = await response.json();
-      return data as { canEdit: boolean };
+    delete: async (eventId: string) => {
+      const url = `${base()}/api/events/${encodeURIComponent(eventId)}`;
+      const response = await fetch(url, { method: "DELETE" });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error((err as { error?: string })?.error ?? response.statusText);
+      }
+      return {success: true};
     },
+    updateEventRules: async (eventId: string, rules: EventRule[], deletedIds: string[] = []) =>
+      api.events.eventRules.upsert(eventId, rules, deletedIds),
+    updateRewardRules: async (eventId: string, rules: RewardRule[], deletedIds: string[] = []) =>
+      api.events.rewardRules.upsert(eventId, rules, deletedIds),
     updateSchema: async (
       eventId: string,
       eventSchema: Record<string, unknown>,
     ) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}/schema`;
+      const url = `${base()}/api/events/${encodeURIComponent(eventId)}/schema`;
       const response = await fetch(url, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -74,63 +104,170 @@ export const api = {
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error ?? response.statusText);
+        throw new Error((err as { error?: string })?.error ?? response.statusText);
       }
       return (await response.json()) as { success: boolean };
     },
-    updateEventRules: async (
-      eventId: string,
-      rules: EventRule[],
-      deletedIds: string[],
-    ) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}/event-rules`;
-      const response = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rules, deletedIds }),
-      });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error ?? response.statusText);
-      }
-      return (await response.json()) as { success: boolean };
-    },
-    updateRewardRules: async (
-      eventId: string,
-      rules: RewardRule[],
-      deletedIds: string[],
-    ) => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}/reward-rules`;
-      const response = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rules, deletedIds }),
-      });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error ?? response.statusText);
-      }
-      return (await response.json()) as { success: boolean };
-    },
-  },
-  validate: async (formData: {
-    url: string;
-    eventType: string;
-    team: string;
-  }) => {
-    const url = `${env.NEXT_PUBLIC_VALIDATION_BASE_URL}/api/validate`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    eventRules: {
+      getAll: async (eventId: string) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/event-rules`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as EventRule[];
       },
-      body: JSON.stringify(formData),
-    });
-    return await response.json();
+      getById: async (eventId: string, ruleId: string) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/event-rules/${encodeURIComponent(ruleId)}`;
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        return (await response.json()) as EventRule | null;
+      },
+      create: async (eventId: string, rule: Omit<EventRule, "id" | "eventId" | "createdAt" | "updatedAt">) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/event-rules`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(rule),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as EventRule;
+      },
+      update: async (eventId: string, ruleId: string, rule: Partial<EventRule>) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/event-rules/${encodeURIComponent(ruleId)}`;
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(rule),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as EventRule;
+      },
+      patch: async (eventId: string, ruleId: string, rule: Partial<EventRule>) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/event-rules/${encodeURIComponent(ruleId)}`;
+        const response = await fetch(url, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(rule),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as EventRule;
+      },
+      delete: async (eventId: string, ruleId: string) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/event-rules/${encodeURIComponent(ruleId)}`;
+        const response = await fetch(url, { method: "DELETE" });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as { message: string };
+      },
+      upsert: async (eventId: string, rules: EventRule[], deletedIds: string[] = []) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/event-rules`;
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rules, deletedIds }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as { success: boolean };
+      },
+    },
+    rewardRules: {
+      getAll: async (eventId: string) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/reward-rules`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as RewardRule[];
+      },
+      getById: async (eventId: string, ruleId: string) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/reward-rules/${encodeURIComponent(ruleId)}`;
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        return (await response.json()) as RewardRule | null;
+      },
+      create: async (eventId: string, rule: Omit<RewardRule, "id" | "eventId" | "createdAt" | "updatedAt">) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/reward-rules`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(rule),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as RewardRule;
+      },
+      update: async (eventId: string, ruleId: string, rule: Partial<RewardRule>) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/reward-rules/${encodeURIComponent(ruleId)}`;
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(rule),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as RewardRule;
+      },
+      patch: async (eventId: string, ruleId: string, rule: Partial<RewardRule>) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/reward-rules/${encodeURIComponent(ruleId)}`;
+        const response = await fetch(url, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(rule),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as RewardRule;
+      },
+      delete: async (eventId: string, ruleId: string) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/reward-rules/${encodeURIComponent(ruleId)}`;
+        const response = await fetch(url, { method: "DELETE" });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as { message: string };
+      },
+      upsert: async (eventId: string, rules: RewardRule[], deletedIds: string[] = []) => {
+        const url = `${base()}/api/events/${encodeURIComponent(eventId)}/reward-rules`;
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rules, deletedIds }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string })?.error ?? response.statusText);
+        }
+        return (await response.json()) as { success: boolean };
+      },
+    },
   },
   dbTables: {
     getAll: async () => {
-      const url = `${env.NEXT_PUBLIC_API_BASE_URL}/api/db-tables`;
+      const url = `${base()}/api/db-tables`;
       const response = await fetch(url);
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -142,6 +279,20 @@ export const api = {
       return data as Record<string, string[]>;
     },
   },
+  validate: async (formData: {
+    url: string;
+    eventType: string;
+    team: string;
+  }) => {
+    const url = `${env.NEXT_PUBLIC_VALIDATION_BASE_URL}/api/validate`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+    return await response.json();
+  },
 };
 
 export default api;
+

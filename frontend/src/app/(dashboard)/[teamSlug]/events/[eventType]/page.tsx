@@ -44,7 +44,6 @@ export default async function EventPage({params}: PageProps) {
                     <EventTabs/>
                 </div>
             </div>
-            <NewEventDialog team={team}/>
         </ProtectedPage>
     );
 }

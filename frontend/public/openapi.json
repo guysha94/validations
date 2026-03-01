@@ -1,0 +1,1935 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Validation Platform API Documentation",
+    "version": "1.0.0",
+    "description": "This is the OpenAPI specification for the Validation Platform API. It provides endpoints for user authentication, project management, and validation tasks. The API is designed to be secure and efficient, allowing developers to easily integrate with the platform."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "GetDbTablesResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Map of MySQL table names to their column names"
+      },
+      "EventRulePathParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "ID or type of the event"
+          },
+          "ruleId": {
+            "type": "string",
+            "description": "ID of the event rule"
+          }
+        },
+        "required": [
+          "eventId",
+          "ruleId"
+        ]
+      },
+      "UpdateEventRuleResponse": {
+        "$ref": "#/components/schemas/selectEventRuleSchema"
+      },
+      "UpdateEventRuleRequest": {
+        "$ref": "#/components/schemas/updateEventRuleSchema"
+      },
+      "PatchEventRuleRequest": {
+        "type": "object"
+      },
+      "DeleteEventRuleResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Confirmation message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "EventRulesPathParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "ID or type of the event"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "ListEventRulesResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/selectEventRuleSchema"
+        }
+      },
+      "CreateEventRuleRequest": {
+        "type": "object"
+      },
+      "selectEventRuleSchema": {
+        "type": "object"
+      },
+      "UpsertEventRulesRequest": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventRuleInput"
+            },
+            "description": "Event rules to upsert"
+          },
+          "deletedIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of rules to delete"
+          }
+        },
+        "required": [
+          "rules"
+        ]
+      },
+      "UpsertEventRulesResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Indicates the operation completed successfully"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "RewardRulePathParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "ID or type of the event"
+          },
+          "ruleId": {
+            "type": "string",
+            "description": "ID of the reward rule"
+          }
+        },
+        "required": [
+          "eventId",
+          "ruleId"
+        ]
+      },
+      "UpdateRewardRuleResponse": {
+        "$ref": "#/components/schemas/selectRewardRuleSchema"
+      },
+      "UpdateRewardRuleRequest": {
+        "$ref": "#/components/schemas/updateRewardRuleSchema"
+      },
+      "PatchRewardRuleRequest": {
+        "type": "object"
+      },
+      "DeleteRewardRuleResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Confirmation message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "RewardRulesPathParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "ID or type of the event"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "ListRewardRulesResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/selectRewardRuleSchema"
+        }
+      },
+      "CreateRewardRuleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "editAccess": {
+            "type": "string"
+          },
+          "tab": {
+            "type": "string"
+          },
+          "column": {
+            "type": "string"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/RewardRuleQueryItem"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "selectRewardRuleSchema": {
+        "type": "object"
+      },
+      "UpsertRewardRulesRequest": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewardRuleInput"
+            },
+            "description": "Reward rules to upsert"
+          },
+          "deletedIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of rules to delete"
+          }
+        },
+        "required": [
+          "rules"
+        ]
+      },
+      "UpsertRewardRulesResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Indicates the operation completed successfully"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "EventSearchParams": {
+        "type": "object",
+        "properties": {
+          "withRules": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": false,
+            "description": "Whether to include associated event and reward rules in the response"
+          },
+          "withTeam": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": false,
+            "description": "Whether to include associated team information in the response"
+          }
+        }
+      },
+      "EventParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "ID or type of the event to retrieve or update"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "GetEventResponse": {
+        "type": "object",
+        "properties": {
+          "event_rules": {
+            "$ref": "#/components/schemas/selectEventRuleSchema",
+            "nullable": true
+          },
+          "reward_rules": {
+            "$ref": "#/components/schemas/selectRewardRuleSchema",
+            "nullable": true
+          },
+          "team": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/selectTeamSchema"
+              }
+            ]
+          }
+        }
+      },
+      "UpdateEventRequest": {
+        "$ref": "#/components/schemas/updateEventSchema"
+      },
+      "UpdateEventResponse": {
+        "$ref": "#/components/schemas/selectEventSchema"
+      },
+      "PatchEventRequest": {
+        "type": "object"
+      },
+      "DeleteEventResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Confirmation message indicating the event was deleted"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "EventSchemaPathParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "ID or type of the event"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "UpdateEventSchemaRequest": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Event schema defining tabs and columns expected in the Google Sheet"
+      },
+      "UpdateEventSchemaResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Indicates the schema was updated successfully"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "TeamEventsPathParams": {
+        "type": "object",
+        "properties": {
+          "teamSlug": {
+            "type": "string",
+            "description": "Team slug or ID to fetch events for"
+          }
+        },
+        "required": [
+          "teamSlug"
+        ]
+      },
+      "GetTeamEventsResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "eventRules": {
+              "$ref": "#/components/schemas/selectEventRuleSchema",
+              "nullable": true
+            },
+            "rewardRules": {
+              "$ref": "#/components/schemas/selectRewardRuleSchema",
+              "nullable": true
+            }
+          }
+        }
+      },
+      "CreateEventRequest": {
+        "$ref": "#/components/schemas/createEventSchema"
+      },
+      "CreateEventResponse": {
+        "$ref": "#/components/schemas/selectEventSchema"
+      },
+      "EventRuleInput": {
+        "type": "object"
+      },
+      "RewardRuleInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "editAccess": {
+            "type": "string"
+          },
+          "tab": {
+            "type": "string"
+          },
+          "column": {
+            "type": "string"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/RewardRuleQueryItem"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 2
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "editAccess": {
+            "type": "string",
+            "enum": [
+              "public",
+              "restricted"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "icon",
+          "editAccess"
+        ]
+      },
+      "EventFormValues": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 2
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "editAccess": {
+            "type": "string",
+            "enum": [
+              "public",
+              "restricted"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "icon",
+          "editAccess"
+        ]
+      },
+      "eventRuleSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "errorMessage",
+          "query",
+          "enabled"
+        ]
+      },
+      "formSchema": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/eventRuleSchema"
+            }
+          }
+        },
+        "required": [
+          "rules"
+        ]
+      },
+      "EventRuleFormData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "errorMessage",
+          "query",
+          "enabled"
+        ]
+      },
+      "FormData": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/eventRuleSchema"
+            }
+          }
+        },
+        "required": [
+          "rules"
+        ]
+      },
+      "formTabsSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "columns"
+        ]
+      },
+      "rewardRuleQuerySchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "errorMessage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "errorMessage"
+        ]
+      },
+      "rewardRuleSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "tab": {
+            "type": "string"
+          },
+          "column": {
+            "type": "string"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/rewardRuleQuerySchema"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "enabled",
+          "tab",
+          "column",
+          "queries"
+        ]
+      },
+      "RewardRuleFormData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "tab": {
+            "type": "string"
+          },
+          "column": {
+            "type": "string"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/rewardRuleQuerySchema"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "enabled",
+          "tab",
+          "column",
+          "queries"
+        ]
+      },
+      "selectEventSchema": {
+        "type": "object"
+      },
+      "createEventSchema": {
+        "type": "object"
+      },
+      "updateEventSchema": {
+        "type": "object"
+      },
+      "createEventRuleSchema": {
+        "type": "object"
+      },
+      "updateEventRuleSchema": {
+        "type": "object"
+      },
+      "createRewardRuleSchema": {
+        "type": "object"
+      },
+      "updateRewardRuleSchema": {
+        "type": "object"
+      },
+      "selectTeamSchema": {
+        "type": "object"
+      },
+      "createTeamSchema": {
+        "type": "object"
+      },
+      "updateTeamSchema": {
+        "type": "object"
+      },
+      "CreateEventDto": {
+        "type": "object"
+      },
+      "SelectEventDto": {
+        "type": "object"
+      },
+      "UpdateEventDto": {
+        "type": "object"
+      },
+      "RewardRuleQueryItem": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "default": ""
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Bad Request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Invalid request parameters"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "400"
+                }
+              }
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Authentication required"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "401"
+                }
+              }
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Access denied"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "403"
+                }
+              }
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Resource not found"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "404"
+                }
+              }
+            }
+          }
+        }
+      },
+      "409": {
+        "description": "Conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Resource already exists"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "409"
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "An unexpected error occurred"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "500"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/db-tables": {
+      "get": {
+        "operationId": "get-db-tables",
+        "summary": "Get MySQL Tables",
+        "description": "Fetches all MySQL tables and their columns from the backend schema. Used for configuring DuckDB views and validation rules.",
+        "tags": [
+          "Database"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetDbTablesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/events/{eventId}/event-rules": {
+      "get": {
+        "operationId": "get-events-{eventId}-event-rules",
+        "summary": "List Event Rules",
+        "description": "Fetches all event rules for an event by ID or type.",
+        "tags": [
+          "Event Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListEventRulesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-events-{eventId}-event-rules",
+        "summary": "Create Event Rule",
+        "description": "Creates a new event rule for an event. Event ID is derived from the path; do not include it in the body.",
+        "tags": [
+          "Event Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEventRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/selectEventRuleSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-events-{eventId}-event-rules",
+        "summary": "Upsert Event Rules",
+        "description": "Creates or updates event rules for an event. Accepts an array of rules and optional deletedIds to remove rules. Rules are upserted and deleted in parallel.",
+        "tags": [
+          "Event Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertEventRulesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpsertEventRulesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/events/{eventId}/event-rules/{ruleId}": {
+      "get": {
+        "operationId": "get-events-{eventId}-event-rules-{ruleId}",
+        "summary": "Get Event Rule",
+        "description": "Fetches a single event rule by ID for an event.",
+        "tags": [
+          "Event Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "schema": {
+              "type": "string",
+              "description": "ID of the event rule"
+            },
+            "required": true,
+            "description": "ID of the event rule",
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEventRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-events-{eventId}-event-rules-{ruleId}",
+        "summary": "Update Event Rule",
+        "description": "Updates an event rule by ID. Accepts partial event rule fields in the request body.",
+        "tags": [
+          "Event Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "schema": {
+              "type": "string",
+              "description": "ID of the event rule"
+            },
+            "required": true,
+            "description": "ID of the event rule",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEventRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEventRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch-events-{eventId}-event-rules-{ruleId}",
+        "summary": "Partial Update Event Rule",
+        "description": "Partially updates an event rule by ID. Accepts only the fields to change in the request body.",
+        "tags": [
+          "Event Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "schema": {
+              "type": "string",
+              "description": "ID of the event rule"
+            },
+            "required": true,
+            "description": "ID of the event rule",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchEventRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEventRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-events-{eventId}-event-rules-{ruleId}",
+        "summary": "Delete Event Rule",
+        "description": "Deletes an event rule by ID.",
+        "tags": [
+          "Event Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "schema": {
+              "type": "string",
+              "description": "ID of the event rule"
+            },
+            "required": true,
+            "description": "ID of the event rule",
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/events/{eventId}": {
+      "get": {
+        "operationId": "get-events-{eventId}",
+        "summary": "Get Event",
+        "description": "Fetches detailed event information by ID or type.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withRules",
+            "schema": {
+              "description": "Whether to include associated event and reward rules in the response"
+            },
+            "required": false,
+            "description": "Whether to include associated event and reward rules in the response"
+          },
+          {
+            "in": "query",
+            "name": "withTeam",
+            "schema": {
+              "description": "Whether to include associated team information in the response"
+            },
+            "required": false,
+            "description": "Whether to include associated team information in the response"
+          },
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event to retrieve or update"
+            },
+            "required": true,
+            "description": "ID or type of the event to retrieve or update",
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-events-{eventId}",
+        "summary": "Update Event",
+        "description": "Updates event information by ID or type. Accepts event details in the request body and returns the updated event.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event to retrieve or update"
+            },
+            "required": true,
+            "description": "ID or type of the event to retrieve or update",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch-events-{eventId}",
+        "summary": "Partial Update Event",
+        "description": "Partially updates event information by ID or type. Accepts only the fields to change in the request body.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event to retrieve or update"
+            },
+            "required": true,
+            "description": "ID or type of the event to retrieve or update",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-events-{eventId}",
+        "summary": "Delete Event",
+        "description": "Deletes an event by ID or type. Returns a confirmation message upon successful deletion.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event to retrieve or update"
+            },
+            "required": true,
+            "description": "ID or type of the event to retrieve or update",
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/events/{eventId}/schema": {
+      "put": {
+        "operationId": "put-events-{eventId}-schema",
+        "summary": "Update Event Schema",
+        "description": "Updates the event schema (tabs and columns) for an event. The schema defines the expected structure of the Google Sheet for validation.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEventSchemaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEventSchemaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/teams/{teamSlug}/events": {
+      "get": {
+        "operationId": "get-teams-{teamSlug}-events",
+        "summary": "Get Team Events",
+        "description": "Fetches all events with their event and reward rules for a team by slug or ID.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamSlug",
+            "schema": {
+              "type": "string",
+              "description": "Team slug or ID to fetch events for"
+            },
+            "required": true,
+            "description": "Team slug or ID to fetch events for",
+            "example": "example"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTeamEventsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-teams-{teamSlug}-events",
+        "summary": "Create Event",
+        "description": "Creates a new event for a team. Accepts event details in the request body and returns the created event.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/events/{eventId}/reward-rules": {
+      "get": {
+        "operationId": "get-events-{eventId}-reward-rules",
+        "summary": "List Reward Rules",
+        "description": "Fetches all reward rules for an event by ID or type.",
+        "tags": [
+          "Reward Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRewardRulesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-events-{eventId}-reward-rules",
+        "summary": "Create Reward Rule",
+        "description": "Creates a new reward rule for an event. Event ID is derived from the path.",
+        "tags": [
+          "Reward Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRewardRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/selectRewardRuleSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-events-{eventId}-reward-rules",
+        "summary": "Upsert Reward Rules",
+        "description": "Creates or updates reward rules for an event. Accepts an array of rules and optional deletedIds to remove rules. Rules are upserted and deleted in parallel.",
+        "tags": [
+          "Reward Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertRewardRulesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpsertRewardRulesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/events/{eventId}/reward-rules/{ruleId}": {
+      "get": {
+        "operationId": "get-events-{eventId}-reward-rules-{ruleId}",
+        "summary": "Get Reward Rule",
+        "description": "Fetches a single reward rule by ID for an event.",
+        "tags": [
+          "Reward Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "schema": {
+              "type": "string",
+              "description": "ID of the reward rule"
+            },
+            "required": true,
+            "description": "ID of the reward rule",
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRewardRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-events-{eventId}-reward-rules-{ruleId}",
+        "summary": "Update Reward Rule",
+        "description": "Updates a reward rule by ID. Accepts partial reward rule fields in the request body.",
+        "tags": [
+          "Reward Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "schema": {
+              "type": "string",
+              "description": "ID of the reward rule"
+            },
+            "required": true,
+            "description": "ID of the reward rule",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRewardRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRewardRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch-events-{eventId}-reward-rules-{ruleId}",
+        "summary": "Partial Update Reward Rule",
+        "description": "Partially updates a reward rule by ID. Accepts only the fields to change in the request body.",
+        "tags": [
+          "Reward Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "schema": {
+              "type": "string",
+              "description": "ID of the reward rule"
+            },
+            "required": true,
+            "description": "ID of the reward rule",
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchRewardRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRewardRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-events-{eventId}-reward-rules-{ruleId}",
+        "summary": "Delete Reward Rule",
+        "description": "Deletes a reward rule by ID.",
+        "tags": [
+          "Reward Rules"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "schema": {
+              "type": "string",
+              "description": "ID or type of the event"
+            },
+            "required": true,
+            "description": "ID or type of the event",
+            "example": "123"
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "schema": {
+              "type": "string",
+              "description": "ID of the reward rule"
+            },
+            "required": true,
+            "description": "ID of the reward rule",
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    }
+  }
+}

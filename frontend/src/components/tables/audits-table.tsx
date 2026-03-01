@@ -14,24 +14,25 @@ import { Button } from "~/components/ui/button";
 import type { AuditLog, PaginationAndSorting } from "~/domain";
 import TanStackBasicTable from "./TanStackBasicTable";
 
-const SortableHeader = memo(function SortableHeader({
+function SortableHeader({
   column,
   title,
 }: {
   column: Column<AuditLog>;
   title: string;
 }) {
+  if(!column) return null;
   return (
     <Button
       variant="ghost"
       className="cursor-pointer"
-      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      // onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
     >
       {title}
       <ArrowUpDown />
     </Button>
   );
-});
+}
 
 export const columns: ColumnDef<AuditLog>[] = [
   {
@@ -40,6 +41,11 @@ export const columns: ColumnDef<AuditLog>[] = [
     header: "ID",
     enableSorting: true,
     enableHiding: true,
+    enableColumnFilter: true,
+    enableMultiSort: true,
+    enablePinning: true,
+    enableResizing: true,
+    sortDescFirst: true,
   },
   {
     accessorKey: "createdAt",
@@ -48,12 +54,22 @@ export const columns: ColumnDef<AuditLog>[] = [
     ),
     enableSorting: true,
     enableHiding: true,
+    enableColumnFilter: true,
+    enableMultiSort: true,
+    enablePinning: true,
+    enableResizing: true,
+    sortDescFirst: true,
   },
   {
     accessorKey: "action",
     header: ({ column }) => <SortableHeader column={column} title="Action" />,
     enableSorting: true,
     enableHiding: true,
+    enableColumnFilter: true,
+    enableMultiSort: true,
+    enablePinning: true,
+    enableResizing: true,
+    sortDescFirst: true,
   },
   {
     accessorKey: "entityType",
@@ -62,6 +78,11 @@ export const columns: ColumnDef<AuditLog>[] = [
     ),
     enableSorting: true,
     enableHiding: true,
+    enableColumnFilter: true,
+    enableMultiSort: true,
+    enablePinning: true,
+    enableResizing: true,
+    sortDescFirst: true,
   },
   {
     accessorKey: "entityId",
@@ -70,6 +91,11 @@ export const columns: ColumnDef<AuditLog>[] = [
     ),
     enableSorting: true,
     enableHiding: true,
+    enableColumnFilter: true,
+    enableMultiSort: true,
+    enablePinning: true,
+    enableResizing: true,
+    sortDescFirst: true,
   },
   {
     accessorKey: "actorType",
@@ -78,12 +104,22 @@ export const columns: ColumnDef<AuditLog>[] = [
     ),
     enableSorting: true,
     enableHiding: true,
+    enableColumnFilter: true,
+    enableMultiSort: true,
+    enablePinning: true,
+    enableResizing: true,
+    sortDescFirst: true,
   },
   {
     accessorKey: "source",
     header: ({ column }) => <SortableHeader column={column} title="Source" />,
     enableSorting: true,
     enableHiding: true,
+    enableColumnFilter: true,
+    enableMultiSort: true,
+    enablePinning: true,
+    enableResizing: true,
+    sortDescFirst: true,
   },
 ];
 
