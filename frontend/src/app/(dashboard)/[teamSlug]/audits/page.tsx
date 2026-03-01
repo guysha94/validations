@@ -1,5 +1,5 @@
 import {Suspense} from "react";
-import {fetchAuditLogs} from "~/actions";
+import {fetchAuditLogs, getTeamSlugs} from "~/actions";
 import {ProtectedPage} from "~/components/auth";
 import Loader from "~/components/Loader";
 import {AuditsTable} from "~/components/tables";
@@ -10,18 +10,30 @@ type Props = {
     searchParams: Promise<PaginationAndSorting>;
 };
 
+export async function generateStaticParams() {
+
+    const {data, error} = await getTeamSlugs();
+    if (error) {
+        if (process.env.NODE_ENV === "development") {
+            console.error("Error fetching team slugs for static params:", error);
+        }
+        return [];
+    }
+    if (!data || !Array.isArray(data)) {
+        if (process.env.NODE_ENV === "development") {
+            console.error("Invalid data format for team slugs:", data);
+        }
+        return [];
+    }
+    return data.map((teamSlug) => ({teamSlug}));
+}
+
 async function AuditsPageInner(props: Props) {
     const {teamSlug} = await props.params;
     const paginationAndSorting = await props.searchParams;
-    if (paginationAndSorting) {
-        paginationAndSorting.pageIndex = parseInt(
-            (paginationAndSorting.pageIndex || "0").toString(),
-            10,
-        );
-        paginationAndSorting.pageSize = parseInt(
-            (paginationAndSorting.pageSize || "10").toString(),
-            10,
-        );
+    if (!!paginationAndSorting) {
+        paginationAndSorting.pageIndex = parseInt((paginationAndSorting.pageIndex || "0").toString(), 10);
+        paginationAndSorting.pageSize = parseInt((paginationAndSorting.pageSize || "10").toString(), 10);
     }
 
     const {data: logs, error} = await fetchAuditLogs(
@@ -54,12 +66,14 @@ async function AuditsPageInner(props: Props) {
         <ProtectedPage>
             <div className="flex min-h-screen justify-center bg-background py-12 px-4">
                 <div className="w-full max-w-6xl">
-                    <AuditsTable
-                        data={logs?.rows || []}
-                        rowCount={logs?.total || 0}
-                        paginationAndSorting={paginationAndSorting}
-                        teamSlug={teamSlug}
-                    />
+                    <Suspense fallback={<Loader fullscreen/>}>
+                        <AuditsTable
+                            data={logs?.rows || []}
+                            rowCount={logs?.total || 0}
+                            paginationAndSorting={paginationAndSorting}
+                            teamSlug={teamSlug}
+                        />
+                    </Suspense>
                 </div>
             </div>
         </ProtectedPage>

@@ -1,9 +1,11 @@
 "use client";
 
 import type {
+  AuditLog,
   Event,
   EventRule,
   EventWithRules,
+  PaginatedResponse,
   RewardRule,
 } from "~/domain";
 import env from "~/lib/env";
@@ -263,6 +265,34 @@ export const api = {
         }
         return (await response.json()) as { success: boolean };
       },
+    },
+  },
+  audits: {
+    getPaginated: async (
+      teamSlug: string,
+      params: {
+        pageIndex?: number;
+        pageSize?: number;
+        q?: string;
+        sorting?: Array<{ id: string; desc?: boolean }>;
+      },
+    ) => {
+      const searchParams = new URLSearchParams();
+      searchParams.set("pageIndex", String(params.pageIndex ?? 0));
+      searchParams.set("pageSize", String(params.pageSize ?? 10));
+      if (params.q) searchParams.set("q", params.q);
+      if (params.sorting?.length)
+        searchParams.set("sorting", JSON.stringify(params.sorting));
+
+      const url = `${base()}/api/teams/${encodeURIComponent(teamSlug)}/audits?${searchParams.toString()}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(
+          (err as { error?: string })?.error ?? response.statusText,
+        );
+      }
+      return (await response.json()) as PaginatedResponse<AuditLog>;
     },
   },
   dbTables: {

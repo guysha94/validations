@@ -1,11 +1,13 @@
 import "server-only";
 
-import {and, count, eq, like, or, sql} from "drizzle-orm";
+import {and, asc, count, desc, eq, like, or, sql} from "drizzle-orm";
 import db from "~/db";
 import {auditLogs} from "~/db/schema";
 import {AsyncResult, AuditLog, PaginatedResponse, PaginationAndSorting} from "~/domain";
-import {cacheLife, cacheTag} from "next/cache";
 import {uuidv7} from "uuidv7";
+import type {SortingState} from "@tanstack/react-table";
+import {MySqlColumn} from "drizzle-orm/mysql-core";
+import {cacheLife, cacheTag} from "next/cache";
 
 const MAX_PAYLOAD_SIZE = 16 * 1024; // 16KB
 
@@ -35,17 +37,41 @@ const searchAuditLogCountPrepare = db
         and(
             eq(auditLogs.teamSlug, sql.placeholder("teamSlug")),
             or(
-                like(sql`LOWER(${auditLogs.id})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.action})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.entityType})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.entityId})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.actorId})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.actorType})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.source})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(CAST(${auditLogs.payload} AS CHAR))`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(CAST(${auditLogs.metadata} AS CHAR))`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.id}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.action}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.entityType}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.entityId}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.actorId}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.actorType}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.source}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(CAST(
+                ${auditLogs.payload}
+                AS
+                CHAR
+                )
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(CAST(
+                ${auditLogs.metadata}
+                AS
+                CHAR
+                )
+                )`, sql.placeholder("likeQuery")),
             )
-            )).prepare();
+        )).prepare();
 
 const searchAuditLogPrepare = db
     .select()
@@ -54,15 +80,39 @@ const searchAuditLogPrepare = db
         and(
             eq(auditLogs.teamSlug, sql.placeholder("teamSlug")),
             or(
-                like(sql`LOWER(${auditLogs.id})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.action})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.entityType})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.entityId})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.actorId})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.actorType})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(${auditLogs.source})`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(CAST(${auditLogs.payload} AS CHAR))`, sql.placeholder("likeQuery")),
-                like(sql`LOWER(CAST(${auditLogs.metadata} AS CHAR))`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.id}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.action}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.entityType}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.entityId}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.actorId}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.actorType}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(
+                ${auditLogs.source}
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(CAST(
+                ${auditLogs.payload}
+                AS
+                CHAR
+                )
+                )`, sql.placeholder("likeQuery")),
+                like(sql`LOWER(CAST(
+                ${auditLogs.metadata}
+                AS
+                CHAR
+                )
+                )`, sql.placeholder("likeQuery")),
             )
         )
     )
@@ -78,18 +128,24 @@ const selectAuditLogCountPrepare = db
     .prepare();
 
 const columnMap: Record<string, string> = {
+    id: "id",
     action: "action",
     entityType: "entity_type",
     entityId: "entity_id",
     actorId: "actor_id",
     actorType: "actor_type",
     source: "source",
+    payload: "payload",
+    metadata: "metadata",
+    teamSlug: "team_slug",
     createdAt: "created_at",
+
 };
 
 function getSortingClause(sorting: PaginationAndSorting["sorting"]): string {
     let sortingClause = ""; // default sorting
     if (sorting?.length) {
+        sorting = typeof sorting === 'string' ? JSON.parse(sorting) : sorting;
         for (const sort of sorting) {
             const column = columnMap[sort.id];
             if (column) {
@@ -111,7 +167,7 @@ export async function searchAuditLog(
     "use cache";
     cacheLife("minutes");
     cacheTag("audits");
-    const {pageIndex, pageSize:limit, sorting, q} = options;
+    const {pageIndex, pageSize: limit, sorting, q} = options;
 
     const offset = pageIndex * limit;
     const likeQuery = `%${q.toLowerCase()}%`;
@@ -125,13 +181,41 @@ export async function searchAuditLog(
 
         const sortingClause = getSortingClause(sorting);
 
-        const logs = await searchAuditLogPrepare.execute({
-            teamSlug,
-            likeQuery,
-            sortingClause,
-            offset,
-            limit,
-        });
+        const logs = await db.select()
+            .from(auditLogs)
+            .where(
+                and(
+                    eq(auditLogs.teamSlug, teamSlug),
+                    or(
+                        like(sql`LOWER(
+                        ${auditLogs.id}
+                        )`, likeQuery),
+                        like(sql`LOWER(
+                        ${auditLogs.action}
+                        )`, likeQuery),
+                        like(sql`LOWER(
+                        ${auditLogs.entityType}
+                        )`, likeQuery),
+                        like(sql`LOWER(
+                        ${auditLogs.entityId}
+                        )`, likeQuery),
+                        like(sql`LOWER(
+                        ${auditLogs.actorId}
+                        )`, likeQuery),
+                        like(sql`LOWER(
+                        ${auditLogs.actorType}
+                        )`, likeQuery),
+                        like(sql`LOWER(
+                        ${auditLogs.source}
+                        )`, likeQuery),
+                        // like(sql`LOWER(CAST(${auditLogs.payload} AS CHAR))`, likeQuery),
+                        // like(sql`LOWER(CAST(${auditLogs.metadata} AS CHAR))`, likeQuery),
+                    )
+                )
+            )
+            .orderBy(sql`${sortingClause}`)
+            .offset(offset)
+            .limit(limit);
 
         return {data: {total, rows: logs as any}}
     } catch (err) {
@@ -153,18 +237,22 @@ export async function fetchAuditLogs(
         return searchAuditLog(teamSlug, options);
     }
     const offset = pageIndex * pageSize;
+
+
     try {
         const [{total}] = await selectAuditLogCountPrepare.execute({teamSlug});
+        const sortingParams: SortingState = typeof (sorting as unknown) === 'string' ? JSON.parse(sorting?.toString()) : sorting;
+        const orderBy = sortingParams?.map(s => `${columnMap[s.id]} ${s.desc ? "DESC" : "ASC"}`) || ["created_at DESC"];
+        const logs = await db.query.auditLogs.findMany({
+            where: eq(auditLogs.teamSlug, teamSlug),
+            orderBy: sql.raw(orderBy.join(", ")),
+            offset,
+            limit: pageSize,
 
-        const sortingClause = getSortingClause(sorting);
-        const logs = await db
-            .select()
-            .from(auditLogs)
-            .where(eq(auditLogs.teamSlug, teamSlug))
-            .orderBy(sql`${sql.raw(sortingClause)}`)
-            .offset(offset)
-            .limit(pageSize);
+        })
         return {data: {total, rows: logs as any}}
+        // const sortingClause = getSortingClause(sorting);
+
     } catch (err) {
         console.error("Failed to fetch audit logs:", err);
         const error = err instanceof Error ? err : new Error(String(err));
