@@ -8,6 +8,7 @@ import { twMerge } from "tailwind-merge";
 import type { Session } from "~/domain";
 import { Routes } from "~/lib/constants";
 import env from "~/lib/env";
+import _ from "lodash";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -69,6 +70,10 @@ export async function decodeSessionCookie(
     );
     return payload;
   }
+}
+
+export function toTitleCase(str: string): string {
+    return _.startCase(_.toLower(str));
 }
 
 export const getEventRoute = compile(Routes.EVENT);

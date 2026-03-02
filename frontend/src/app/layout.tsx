@@ -31,7 +31,7 @@ const style: CSSProperties = {
 
 export default async function RootLayout({children}: PropsWithChildren) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
         <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >

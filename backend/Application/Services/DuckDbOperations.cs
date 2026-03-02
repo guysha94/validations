@@ -9,12 +9,16 @@ namespace Backend.Application.Services;
 /// </summary>
 public sealed class DuckDbOperations(ILogger<DuckDbOperations> logger)
 {
-    private const string MySqlAttachSchema = "mysql";
+    private const string MY_SQL_ATTACH_SCHEMA = "mysql";
+    private const string INSTALL_MYSQL_SCANNER_SQL = "INSTALL mysql_scanner;";
+    private const string LOAD_MYSQL_SCANNER_SQL = "LOAD mysql_scanner;";
+    private const string CHECK_MYSQL_SCANNER_SQL = "SELECT 1 FROM duckdb_scanners() WHERE name = 'mysql_scanner';";
+    private const string ATTACH_MYSQL_SQL_TEMPLATE = "ATTACH '{0}' AS mysql (TYPE mysql_scanner, READ_ONLY);";
 
     public void LoadMySqlScanner(DuckDBConnection conn)
     {
-        ExecNonQuery(conn, "INSTALL mysql_scanner;");
-        ExecNonQuery(conn, "LOAD mysql_scanner;");
+        ExecNonQuery(conn, INSTALL_MYSQL_SCANNER_SQL);
+        ExecNonQuery(conn, LOAD_MYSQL_SCANNER_SQL);
     }
 
     public void InsertIntoDuckDb(
@@ -32,14 +36,13 @@ public sealed class DuckDbOperations(ILogger<DuckDbOperations> logger)
             return;
 
         var attachStr = ToDuckDbAttachString(mysqlConnectionString);
-        ExecNonQuery(conn,
-            $"ATTACH '{attachStr.Replace("'", "''")}' AS {MySqlAttachSchema} (TYPE mysql_scanner, READ_ONLY);");
+        ExecNonQuery(conn, string.Format(ATTACH_MYSQL_SQL_TEMPLATE, attachStr));
 
         foreach (var tableName in mysqlTables)
         {
             ExecNonQuery(conn, $@"
             CREATE OR REPLACE VIEW {QuoteIdent(tableName)} AS
-            SELECT * FROM {MySqlAttachSchema}.{QuoteIdent(tableName)};
+            SELECT * FROM {MY_SQL_ATTACH_SCHEMA}.{QuoteIdent(tableName)};
         ");
         }
     }

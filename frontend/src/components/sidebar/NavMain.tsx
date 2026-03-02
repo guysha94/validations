@@ -112,7 +112,7 @@ export function NavMainComponent() {
     }, [eventToDelete, deleteEvent, closeDelete, router, activeTeam]);
 
 
-    if (isPending || !activeTeam) {
+    if (isPending) {
         return <Loader fullscreen/>;
     }
 

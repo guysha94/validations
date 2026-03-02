@@ -58,31 +58,22 @@ export function TestForm({readOnly = false}: Props) {
             if (response.errors && response.errors.length > 0) {
                 toast.error(
                     `Validation failed with ${response.errors.length} error(s)`,
-                    {
-                        closeButton: true,
-                        duration: 4000,
-                        style: {backgroundColor: "#f43f5e", color: "white"},
-                    },
+                    {closeButton: true, duration: 4000},
                 );
             } else {
                 toast.success("Validation passed successfully!", {
                     closeButton: true,
                     duration: 4000,
                     richColors: true,
-                    style: {backgroundColor: "#4ade80", color: "white"},
                 });
             }
         } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : "An error occurred during validation",
-                {
-                    closeButton: true,
-                    duration: 4000,
-                    style: {backgroundColor: "#f43f5e", color: "white"},
-                },
-            );
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : "An error occurred during validation",
+                    {closeButton: true, duration: 4000},
+                );
         } finally {
             setIsSubmitting(false);
         }

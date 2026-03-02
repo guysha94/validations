@@ -73,18 +73,13 @@ export function SchemaForm({readOnly = false}: Props) {
             if (updateSchemaError || !success) {
                 toast.error(
                     updateSchemaError instanceof Error ? updateSchemaError.message : "An error occurred",
-                    {
-                        closeButton: true,
-                        duration: 4000,
-                        style: {backgroundColor: "#f43f5e", color: "white"},
-                    },
+                    {closeButton: true, duration: 4000},
                 );
             } else {
                 toast.success("Schema saved successfully", {
                     closeButton: true,
                     duration: 4000,
                     richColors: true,
-                    style: {backgroundColor: "#4ade80", color: "white"},
                 });
             }
 
@@ -93,11 +88,7 @@ export function SchemaForm({readOnly = false}: Props) {
         } catch (error) {
             toast.error(
                 error instanceof Error ? error.message : "An error occurred",
-                {
-                    closeButton: true,
-                    duration: 4000,
-                    style: {backgroundColor: "#f43f5e", color: "white"},
-                },
+                {closeButton: true, duration: 4000},
             );
             setIsSubmitting(false);
         } finally {
@@ -148,7 +139,6 @@ export function SchemaForm({readOnly = false}: Props) {
         }
     }, [activeEvent, form.getValues, form.reset]);
 
-    if (isLoading) return <Loader fullscreen/>;
 
     if (!activeEvent) {
         return (

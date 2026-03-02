@@ -92,26 +92,17 @@ export function EventRulesForm({readOnly = false}: RulesFormProps) {
                     closeButton: true,
                     duration: 4000,
                     richColors: true,
-                    style: {backgroundColor: "#4ade80", color: "white"},
                 });
             } else {
                 toast.error(
                     error instanceof Error ? error.message : "An error occurred",
-                    {
-                        closeButton: true,
-                        duration: 4000,
-                        style: {backgroundColor: "#f43f5e", color: "white"},
-                    },
+                    {closeButton: true, duration: 4000},
                 );
             }
         } catch (error) {
             toast.error(
                 error instanceof Error ? error.message : "An error occurred",
-                {
-                    closeButton: true,
-                    duration: 4000,
-                    style: {backgroundColor: "#f43f5e", color: "white"},
-                },
+                {closeButton: true, duration: 4000},
             );
         } finally {
             setIsSubmitting(false);

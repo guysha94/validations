@@ -54,17 +54,16 @@ export default function EventTabs() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="schema" className="flex-1 min-h-0">
-          <SchemaForm />
+          {currentTab === "schema" && <SchemaForm/>}
         </TabsContent>
         <TabsContent value="event-rules" className="flex-1 min-h-0">
-          <EventRulesForm />
-          {/*{syncEvent && <RulesCard event={syncEvent} readOnly={false}/>}*/}
+          {currentTab === "event-rules" && <EventRulesForm/>}
         </TabsContent>
         <TabsContent value="reward-rules" className="flex-1 min-h-0">
-          <RewardRulesForm />
+          {currentTab === "reward-rules" && <RewardRulesForm/>}
         </TabsContent>
         <TabsContent value="test" className="flex-1 min-h-0">
-          <TestCard readOnly={!canEdit} />
+          {currentTab === "test" && <TestCard readOnly={!canEdit}/>}
         </TabsContent>
       </Tabs>
     </div>

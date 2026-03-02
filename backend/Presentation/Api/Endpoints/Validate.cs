@@ -1,11 +1,10 @@
-using System.Diagnostics;
+using Backend.Presentation.Api.Processors.Audits;
 
-namespace Backend.Endpoints;
+namespace Backend.Presentation.Api.Endpoints;
 
 public class Validate(
     ILogger<Validate> logger,
-    ValidationService service,
-    IAuditService audit
+    ValidationService service
 ) :
     Endpoint<ValidateRequest, ValidateResponse>
 {
@@ -14,32 +13,16 @@ public class Validate(
         Post("validate");
         AllowAnonymous();
         Validator<ValidateRequestValidator>();
-        Tags("Rules");
+        PreProcessor<AuditsPreProcessor>();
+        PostProcessor<AuditsPostProcessor>();
+        Tags("Validations");
     }
 
-    public override async Task HandleAsync(ValidateRequest dto, CancellationToken ct)
+    public override async Task HandleAsync(ValidateRequest request, CancellationToken ct)
     {
-        logger.LogInformation("Received validation request, info: {@Info}", dto);
-        var start = Stopwatch.GetTimestamp();
-        var result = await service.ValidateAsync(dto, ct);
-        var durationMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
-
+        logger.LogValidationRequest(request);
+        var result = await service.ValidateAsync(request, ct);
         await Send.OkAsync(result, ct);
 
-        var urlTruncated = string.IsNullOrEmpty(dto.Url)
-            ? null
-            : dto.Url.Length <= 50
-                ? dto.Url
-                : dto.Url[..50] + "...";
-        _ = audit.LogAsync(
-            "validate",
-            "validation",
-            null,
-            null,
-            "anonymous",
-            "backend",
-            new { eventType = dto.EventType, url = urlTruncated, team = dto.Team },
-            new { duration_ms = durationMs, status = result.Status, error_count = result.Errors.Count },
-            CancellationToken.None);
     }
 }

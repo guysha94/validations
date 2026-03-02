@@ -19,24 +19,24 @@ export default function TanStackBasicTablePaginationNavigationComponent<TData>({
   return (
     <Pagination>
       <PaginationContent>
-        <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+        <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
           <PaginationPrevious onClick={() => table.previousPage()} />
         </PaginationItem>
         {table.getState().pagination.pageIndex + 1 >= 4 && (
-          <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+          <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
             <PaginationLink onClick={() => table.setPageIndex(0)}>
               1
             </PaginationLink>
           </PaginationItem>
         )}
         {table.getState().pagination.pageIndex + 1 >= 5 && (
-          <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+          <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
             <PaginationEllipsis />
           </PaginationItem>
         )}
         {/* 2 pages before */}
         {table.getState().pagination.pageIndex + 1 - 2 > 0 && (
-          <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+          <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
             <PaginationLink
               onClick={() =>
                 table.setPageIndex(table.getState().pagination.pageIndex - 2)
@@ -48,7 +48,7 @@ export default function TanStackBasicTablePaginationNavigationComponent<TData>({
         )}
         {/* 1 page before */}
         {table.getState().pagination.pageIndex + 1 - 1 > 0 && (
-          <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+          <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
             <PaginationLink
               onClick={() =>
                 table.setPageIndex(table.getState().pagination.pageIndex - 1)
@@ -59,7 +59,7 @@ export default function TanStackBasicTablePaginationNavigationComponent<TData>({
           </PaginationItem>
         )}
         {/* Current page */}
-        <PaginationItem className="bg-gray-100 rounded-md">
+        <PaginationItem className="bg-accent rounded-md">
           <PaginationLink>
             {table.getState().pagination.pageIndex + 1}
           </PaginationLink>
@@ -67,7 +67,7 @@ export default function TanStackBasicTablePaginationNavigationComponent<TData>({
         {/* 1 page after */}
         {table.getState().pagination.pageIndex + 1 + 1 <=
           table?.getPageCount() && (
-          <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+          <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
             <PaginationLink
               onClick={() =>
                 table.setPageIndex(table.getState().pagination.pageIndex + 1)
@@ -80,7 +80,7 @@ export default function TanStackBasicTablePaginationNavigationComponent<TData>({
         {/* 2 page after */}
         {table.getState().pagination.pageIndex + 1 + 2 <=
           table?.getPageCount() && (
-          <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+          <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
             <PaginationLink
               onClick={() =>
                 table.setPageIndex(table.getState().pagination.pageIndex + 2)
@@ -92,13 +92,13 @@ export default function TanStackBasicTablePaginationNavigationComponent<TData>({
         )}
         {table.getState().pagination.pageIndex + 1 + 2 <
           table?.getPageCount() - 1 && (
-          <PaginationItem className="bg-indigo-100 rounded-md">
+          <PaginationItem className="bg-muted rounded-md">
             <PaginationEllipsis />
           </PaginationItem>
         )}
         {table.getState().pagination.pageIndex + 1 + 2 <
           table?.getPageCount() && (
-          <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+          <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
             <PaginationLink
               onClick={() => table.setPageIndex(table?.getPageCount())}
             >
@@ -106,7 +106,7 @@ export default function TanStackBasicTablePaginationNavigationComponent<TData>({
             </PaginationLink>
           </PaginationItem>
         )}
-        <PaginationItem className="bg-indigo-100 rounded-md hover:cursor-pointer">
+        <PaginationItem className="bg-muted rounded-md hover:bg-muted/80 hover:cursor-pointer">
           <PaginationNext onClick={() => table.nextPage()} />
         </PaginationItem>
       </PaginationContent>

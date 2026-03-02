@@ -1,6 +1,5 @@
 using System.Data;
 using DuckDB.NET.Data;
-using Microsoft.IdentityModel.Tokens;
 using RewardStringParser;
 using RewardStringParser.RewardModels;
 
@@ -14,7 +13,7 @@ public sealed class ValidationEngine(
     ILogger<ValidationEngine> logger
 )
 {
-    public async Task<ICollection<ErrorDetailDto>> ValidateEventRulesAsync(
+    public async Task<ICollection<ErrorDetails>> ValidateEventRulesAsync(
         string team,
         IReadOnlyDictionary<string, DataTable> tabs,
         ICollection<EventRule> eventRules,
@@ -38,7 +37,7 @@ public sealed class ValidationEngine(
         duckDb.LoadMySqlScanner(conn);
         duckDb.InsertIntoDuckDb(conn, connectionString, tabs, tablesNeeded);
 
-        var errors = new LinkedList<ErrorDetailDto>();
+        var errors = new LinkedList<ErrorDetails>();
 
         foreach (var rule in eventRules)
         {
@@ -57,7 +56,7 @@ public sealed class ValidationEngine(
                         ? ErrorAttribution.TryGetInt(row["Id"]) ?? (idx + 2)
                         : (idx + 2);
 
-                    errors.AddLast(new ErrorDetailDto(
+                    errors.AddLast(new ErrorDetails(
                         tabName,
                         rowId + 1,
                         rule.ErrorMessage
@@ -67,14 +66,14 @@ public sealed class ValidationEngine(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Rule execution failed (ruleId={RuleId})", rule.Id);
-                errors.AddLast(new ErrorDetailDto("Unknown", 0, $"Rule failed: {rule.Name} ({rule.Id})"));
+                errors.AddLast(new ErrorDetails("Unknown", 0, $"Rule failed: {rule.Name} ({rule.Id})"));
             }
         }
 
         return errors;
     }
 
-    public async Task<ICollection<ErrorDetailDto>> ValidateRewardRulesAsync(
+    public async Task<ICollection<ErrorDetails>> ValidateRewardRulesAsync(
         string team,
         IReadOnlyDictionary<string, DataTable> tabs,
         ICollection<RewardRule> rewardRules,
@@ -89,19 +88,19 @@ public sealed class ValidationEngine(
 
         var tableNames = await GetMySqlTableNamesAsync(mysqlConn, ct);
 
-        var errors = new LinkedList<ErrorDetailDto>();
+        var errors = new LinkedList<ErrorDetails>();
 
         foreach (var rule in rewardRules)
         {
-            if (!tabs.TryGetValue(rule.Tab, out var tab))
+            if (!tabs.TryGetValue(rule.Tab, out var tab) || tab is null)
             {
-                errors.AddLast(new ErrorDetailDto(rule.Tab, $"Tab '{rule.Tab}' not found for rule '{rule.Name}'"));
+                errors.AddLast(new ErrorDetails(rule.Tab, $"Tab '{rule.Tab}' not found for rule '{rule.Name}'"));
                 continue;
             }
 
             if (!tab.Columns.Contains(rule.Column))
             {
-                errors.AddLast(new ErrorDetailDto(rule.Tab,
+                errors.AddLast(new ErrorDetails(rule.Tab,
                     $"Column '{rule.Column}' not found in tab '{rule.Tab}' for rule '{rule.Name}'"));
                 continue;
             }
@@ -109,9 +108,15 @@ public sealed class ValidationEngine(
 
             foreach (var ruleQuery in rule.Queries)
             {
-                var tablesNeeded = tableNames
-                    .Where(t => ruleQuery.Query.Contains(t, StringComparison.Ordinal))
-                    .ToHashSet();
+                if (string.IsNullOrEmpty(ruleQuery.Query))
+                {
+                    errors.AddLast(new ErrorDetails(rule.Tab,
+                        $"Reward rule '{rule.Name}' has a query with no SQL"));
+                    continue;
+                }
+                var tablesNeeded = tableNames?
+                    .Where(t => t is not null && ruleQuery.Query.Contains(t, StringComparison.Ordinal))
+                    .ToHashSet() ?? [];
 
                 foreach (var row in tab.AsEnumerable())
                 {
@@ -119,7 +124,7 @@ public sealed class ValidationEngine(
                     if (string.IsNullOrWhiteSpace(columnValue))
                     {
                         {
-                            errors.AddLast(new ErrorDetailDto(rule.Tab,
+                            errors.AddLast(new ErrorDetails(rule.Tab,
                                 $"Empty value in column '{rule.Column}' for rule '{rule.Name}'"));
                             continue;
                         }
@@ -138,17 +143,17 @@ public sealed class ValidationEngine(
                             succ =>
                             {
                                 if (succ.Rows.Count > 0)
-                                    errors.AddLast(new ErrorDetailDto(rule.Tab, row.Table.Rows.IndexOf(row) + 2,
+                                    errors.AddLast(new ErrorDetails(rule.Tab, row.Table.Rows.IndexOf(row) + 2,
                                         ruleQuery.ErrorMessage));
                             },
-                            fail => errors.AddLast(new ErrorDetailDto(rule.Tab,
+                            fail => errors.AddLast(new ErrorDetails(rule.Tab,
                                 $"Reward rule '{rule.Name}' validation error: {fail.Message}")
                             ));
                     }
                     catch (Exception ex)
                     {
                         logger.LogError(ex, "Reward rule execution failed (ruleId={RuleId})", rule.Id);
-                        errors.AddLast(new ErrorDetailDto(rule.Tab, 0,
+                        errors.AddLast(new ErrorDetails(rule.Tab, 0,
                             $"Reward rule failed: {rule.Name} ({rule.Id})"));
                     }
                 }
@@ -207,23 +212,23 @@ public sealed class ValidationEngine(
         }
     }
 
-    public ICollection<ErrorDetailDto> ValidateSchema(IReadOnlyDictionary<string, ICollection<string>> schema,
+    public ICollection<ErrorDetails> ValidateSchema(IReadOnlyDictionary<string, ICollection<string>> schema,
         IReadOnlyDictionary<string, DataTable> sheetTabs, CancellationToken ct = default)
     {
         if (schema.IsNullOrEmpty())
             return [];
-        var errors = new LinkedList<ErrorDetailDto>();
+        var errors = new LinkedList<ErrorDetails>();
         foreach (var (name, columns) in schema)
         {
             if (!sheetTabs.TryGetValue(name, out var table))
             {
-                errors.AddLast(new ErrorDetailDto(name, 0, $"Expected tab '{name}' not found"));
+                errors.AddLast(new ErrorDetails(name, 0, $"Expected tab '{name}' not found"));
                 continue;
             }
 
             foreach (var col in columns.Where(c => !string.IsNullOrWhiteSpace(c) && !table.Columns.Contains(c)))
             {
-                errors.AddLast(new ErrorDetailDto(name, 0, $"Expected column '{col}' not found in tab '{name}'"));
+                errors.AddLast(new ErrorDetails(name, 0, $"Expected column '{col}' not found in tab '{name}'"));
             }
         }
 

@@ -27,4 +27,18 @@ public static class ServicesExtensions
         });
         return services;
     }
+
+    public static IServiceCollection AddDbMappers(this IServiceCollection services)
+    {
+        SqlMapper.AddTypeHandler(new JsonTypeHandler<IDictionary<string, ICollection<string>>>());
+        SqlMapper.AddTypeHandler(new JsonTypeHandler<IDictionary<string, object>>());
+        SqlMapper.AddTypeHandler(new JsonTypeHandler<LanguageExt.HashSet<string>>());
+        SqlMapper.AddTypeHandler(new JsonTypeHandler<List<string>>());
+        SqlMapper.AddTypeHandler(new JsonTypeHandler<ICollection<string>>());
+        SqlMapper.AddTypeHandler(new JsonTypeHandler<List<RewardRuleQuery>>());
+        SqlMapper.AddTypeHandler(new JsonTypeHandler<ICollection<RewardRuleQuery>>());
+        DommelMapper.SetKeyPropertyResolver(new KeyPropertyResolver());
+        DommelJsonMapper.AddJson(typeof(Event).Assembly);
+        return services;
+    }
 }

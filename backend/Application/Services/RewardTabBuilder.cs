@@ -3,40 +3,9 @@ using RewardStringParser.RewardModels;
 
 namespace Backend.Application.Services;
 
-public sealed class RewardTabBuilder(ILogger<RewardTabBuilder> logger) : IRewardTabBuilder
+public sealed class RewardTabBuilder : IRewardTabBuilder
 {
-    private static string[] AllRewardTypes => Enum.GetNames<IReward.RewardTypes>();
-    // enum RewardTypes
-    // {
-    //     CoinsReward,
-    //     RollsReward,
-    //     TrailEnergyReward,
-    //     AllowanceReward,
-    //     CardReward,
-    //     ChestReward,
-    //     PiggyBreakReward,
-    //     RandomReward,
-    //     StickerPackReward,
-    //     RewardsBucket,
-    //     BlastPicksReward,
-    //     RandomCoinsReward,
-    //     RandomRollsReward,
-    //     RandomTrailEnergyReward,
-    //     RandomBlastPicksReward,
-    //     BoosterReward,
-    //     DACReward,
-    //     DARReward,
-    //     RandomDACReward,
-    //     RandomDARReward,
-    //     DynamicResourceReward,
-    //     ChanceReward,
-    //     BoxReward,
-    //     MissingFormulaReward,
-    //     RandomFormulaReward,
-    //     RollsReductionAllowanceReward,
-    //     PresetReward,
-    // }
-    private static Dictionary<string, Type> RewardTypeMap = new()
+    private static readonly Dictionary<string, Type> RewardTypeMap = new()
     {
         [nameof(IReward.RewardTypes.CoinsReward)] = typeof(SimpleReward),
         [nameof(IReward.RewardTypes.RollsReward)] = typeof(SimpleReward),
@@ -91,10 +60,8 @@ public sealed class RewardTabBuilder(ILogger<RewardTabBuilder> logger) : IReward
                     var property = reward.GetType().GetProperty(columnName);
                     row[columnName] = property?.GetValue(reward)?.ToString() ?? string.Empty;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    logger.LogWarning(ex, "Failed to get property {Property} from reward type {RewardType}",
-                        columnName, reward.RewardType);
                     row[columnName] = string.Empty;
                 }
             }
@@ -120,15 +87,16 @@ public sealed class RewardTabBuilder(ILogger<RewardTabBuilder> logger) : IReward
 
         foreach (var (typName, type) in RewardTypeMap)
         {
-            if(tables.ContainsKey(typName))
+            if (tables.ContainsKey(typName))
                 continue;
-            
+
             var table = new DataTable();
             var columnNames = type.GetProperties().Select(p => p.Name).ToArray();
             foreach (var columnName in columnNames)
             {
                 table.Columns.Add(columnName);
             }
+
             tables[typName] = table;
         }
 

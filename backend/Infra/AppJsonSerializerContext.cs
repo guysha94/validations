@@ -1,4 +1,4 @@
-using Event = Backend.Events.Event;
+using Event = Backend.Domain.Models.Event;
 
 namespace Backend.Infra;
 
@@ -13,17 +13,12 @@ namespace Backend.Infra;
 [JsonSerializable(typeof(List<string>))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(IEnumerable<Event>))]
-[JsonSerializable(typeof(EventCreateDto))]
-[JsonSerializable(typeof(EventUpdateDto))]
-[JsonSerializable(typeof(EventRuleCreateDto))]
-[JsonSerializable(typeof(EventRuleUpdateDto))]
-[JsonSerializable(typeof(EventRuleUpdateManyDto))]
 [JsonSerializable(typeof(RewardRuleQuery))]
 [JsonSerializable(typeof(List<RewardRuleQuery>))]
 [JsonSerializable(typeof(RewardRule))]
 [JsonSerializable(typeof(IEnumerable<RewardRule>))]
-[JsonSerializable(typeof(RewardRuleCreateDto))]
-[JsonSerializable(typeof(RewardRuleUpdateDto))]
+[JsonSerializable(typeof(ValidateRequest))]
+[JsonSerializable(typeof(ValidateResponse))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 }

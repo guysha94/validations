@@ -1,4 +1,4 @@
-namespace Backend.Validation.Validations;
+namespace Backend.Application.Validations;
 
 public class ValidateRequestValidator : Validator<ValidateRequest>
 {

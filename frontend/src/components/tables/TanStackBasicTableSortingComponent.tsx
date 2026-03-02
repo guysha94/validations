@@ -6,7 +6,7 @@ type Props = {
 
 export default function TanStackBasicTableSortingComponent({ sorting }: Props) {
   return (
-    <div className="bg-indigo-100 p-4 rounded-xl">
+    <div className="bg-muted p-4 rounded-xl">
       <h1 className="text-2xl font-bold">Sorts</h1>
       <div className="flex gap-4">
         {sorting.length === 0 ? (

@@ -1,7 +1,7 @@
 using System.Data;
 using RewardStringParser.RewardModels;
 
-namespace Backend.Abstractions;
+namespace Backend.Application.Abstractions;
 
 public interface IRewardTabBuilder
 {

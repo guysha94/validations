@@ -217,21 +217,23 @@ export default function SQLEditor({
 
   return (
     <div ref={containerRef} className="relative">
-      <Editor
-        value={value}
-        onValueChange={handleValueChange}
-        onKeyDown={handleKeyDown}
-        highlight={(code) => highlight(code, languages.sql, "sql")}
-        padding={10}
-        style={{
-          fontFamily: '"Fira code", "Fira Mono", monospace',
-          fontSize: 12,
-          backgroundColor: "white",
-          border: "1px solid #e5e7eb",
-          borderRadius: "6px",
-        }}
-        textareaClassName="dark:bg-background dark:border-input"
-      />
+      <div className="rounded-md border border-input bg-background">
+        <Editor
+          value={value}
+          onValueChange={handleValueChange}
+          onKeyDown={handleKeyDown}
+          highlight={(code) => highlight(code, languages.sql, "sql")}
+          padding={10}
+          style={{
+            fontFamily: '"Fira code", "Fira Mono", monospace',
+            fontSize: 12,
+            backgroundColor: "transparent",
+            border: "none",
+            borderRadius: "6px",
+          }}
+          textareaClassName="bg-transparent"
+        />
+      </div>
       {suggestions.size > 0 && (
         <div
           className="absolute z-50 mt-1 max-h-48 min-w-[160px] overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md"

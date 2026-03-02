@@ -1,15 +1,6 @@
-namespace Backend.Audit;
+namespace Backend.Application.Abstractions;
 
 public interface IAuditService
 {
-    Task LogAsync(
-        string action,
-        string entityType,
-        string? entityId,
-        string? actorId,
-        string actorType,
-        string source,
-        object? payload,
-        object? metadata,
-        CancellationToken ct = default);
+    Task LogAsync(Audit log, CancellationToken ct = default);
 }

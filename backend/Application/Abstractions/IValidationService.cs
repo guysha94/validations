@@ -1,4 +1,4 @@
-namespace Backend.Abstractions;
+namespace Backend.Application.Abstractions;
 
 public interface IValidationService
 {

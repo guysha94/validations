@@ -5,7 +5,9 @@ import {TooltipProvider} from "~/components/ui/tooltip";
 import {AuthContextProvider} from "~/contexts";
 import QueryProvider from "./query-provider";
 import StoreProvider from "./store-provider";
+import ThemeProvider from "./theme-provider";
 import {EventsContextProvider} from "~/contexts/events-context";
+
 
 export function ClientProviders({children}: PropsWithChildren) {
     return (
@@ -16,9 +18,14 @@ export function ClientProviders({children}: PropsWithChildren) {
                         <TooltipProvider>
                             <AuthProvider>
                                 <AuthContextProvider>
-
-                                    {children}
-
+                                    <ThemeProvider
+                                        attribute="class"
+                                        defaultTheme="system"
+                                        enableSystem
+                                        disableTransitionOnChange
+                                    >
+                                        {children}
+                                    </ThemeProvider>
                                 </AuthContextProvider>
                             </AuthProvider>
                         </TooltipProvider>

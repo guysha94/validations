@@ -36,3 +36,6 @@ export const Routes = Object.freeze({
 } as const);
 
 export type Route = (typeof Routes)[keyof typeof Routes];
+
+export const DARK_MODES = ["dark", "light", "system"] as const;
+export type DarkMode = (typeof DARK_MODES)[number];
